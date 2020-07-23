@@ -30,9 +30,12 @@ namespace QuestPackageManager
 
         public void CreatePackage(PackageInfo info)
         {
+            if (info is null)
+                throw new ArgumentException(Resources.Info);
             var conf = configProvider.GetConfig(true);
             if (conf is null)
                 throw new ConfigException(Resources.ConfigNotCreated);
+
             conf.Info = info;
             // Call extra modification as necessary
             OnPackageConfigured?.Invoke(this, conf, info);
@@ -43,6 +46,16 @@ namespace QuestPackageManager
             // Grab the config (or create it if it doesn't exist) and put the package info into it
             // Package info should contain the ID, version of this, along with a package URL (what repo this exists at) optionally empty.
             // Creating a package also ensures your Android.mk has the correct MOD_ID and VERSION set, which SHOULD be used in your main.cpp setup function.
+        }
+
+        public void ChangeUrl(Uri url)
+        {
+            var conf = configProvider.GetConfig();
+            if (conf is null)
+                throw new ConfigException(Resources.ConfigNotFound);
+            if (conf.Info is null)
+                throw new ConfigException(Resources.ConfigInfoIsNull);
+            conf.Info.Url = url;
         }
 
         public void ChangeId(string id)
