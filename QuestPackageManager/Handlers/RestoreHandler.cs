@@ -25,8 +25,10 @@ namespace QuestPackageManager
             this.uriHandler = uriHandler;
         }
 
-        private void CollectDependencies(ref List<Dependency> myDependencies, Dependency d)
+        private void CollectDependencies(string thisId, ref List<Dependency> myDependencies, Dependency d)
         {
+            if (thisId.Equals(d.Id, StringComparison.OrdinalIgnoreCase))
+                throw new DependencyException($"Recursive dependency! Tried to get dependency: {d.Id} at: {d.Url}, but {thisId} matches {d.Id}!");
             // We want to convert our uri into a config file
             var depConfig = uriHandler.GetConfig(d);
             if (depConfig is null)
@@ -48,7 +50,7 @@ namespace QuestPackageManager
                     // For each one, we see if it is a unique ID (one we don't have without our own dependencies) add it if it is
                     myDependencies.Add(innerD);
                     // Collect dependencies of this
-                    CollectDependencies(ref myDependencies, innerD);
+                    CollectDependencies(thisId, ref myDependencies, innerD);
                 }
                 else
                 {
@@ -56,7 +58,7 @@ namespace QuestPackageManager
                     // ex: MyDep@^0.1.0
                     // TheirDep.Dependencies[MyDep@^0.0.1] should be valid
                     var intersection = existing.VersionRange.Intersect(innerD.VersionRange);
-                    if (intersection.ToString() != "<0.0.0")
+                    if (intersection.ToString() == "<0.0.0")
                         // Case where intersections do not overlap
                         throw new DependencyException($"Dependency range fault! Want: {existing.VersionRange} but dependency: {innerD.Id} (under dependency: {d.Id}) wants: {innerD.VersionRange}");
                     // Otherwise, modify the existing element's version range to match.
@@ -72,9 +74,11 @@ namespace QuestPackageManager
             var config = configProvider.GetConfig();
             if (config is null)
                 throw new ConfigException(Resources.ConfigNotFound);
+            if (config.Info is null)
+                throw new ConfigException(Resources.ConfigInfoIsNull);
             var myDependencies = config.Dependencies.ToList();
             foreach (var d in config.Dependencies)
-                CollectDependencies(ref myDependencies, d);
+                CollectDependencies(config.Info.Id, ref myDependencies, d);
             config.Dependencies.Clear();
             // Call post dependency resolution code
             OnDependenciesCollected?.Invoke(this, myDependencies);
@@ -86,10 +90,12 @@ namespace QuestPackageManager
             var config = configProvider.GetConfig();
             if (config is null)
                 throw new ConfigException(Resources.ConfigNotFound);
+            if (config.Info is null)
+                throw new ConfigException(Resources.ConfigInfoIsNull);
             var myDependencies = config.Dependencies.ToList();
             foreach (var d in config.Dependencies)
                 // For each dependency, collect its dependencies
-                CollectDependencies(ref myDependencies, d);
+                CollectDependencies(config.Info.Id, ref myDependencies, d);
 
             // After all dependencies are grabbed, compare it with our current met dependencies
             foreach (var d in myDependencies)

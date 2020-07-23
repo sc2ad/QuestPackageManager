@@ -13,7 +13,7 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
         [Fact]
         public void CollectDependenciesSimple()
         {
-            var config = new Config();
+            var config = new Config() { Info = new PackageInfo("MyMod", "asdf", new SemVer.Version("0.1.0")) };
             var dep = new Dependency("id", new SemVer.Range("^0.1.0"), new Uri("http://someLocation.com"));
             config.Dependencies.Add(dep);
             var depConfig = new Config() { Info = new PackageInfo("Cool Name", "id", new SemVer.Version("0.1.1")) };
@@ -35,8 +35,7 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
         [Fact]
         public void CollectDependenciesNestedNew()
         {
-            var config = new Config();
-            var dep = new Dependency("id", new SemVer.Range("^0.1.0"), new Uri("http://someLocation.com"));
+            var config = new Config() { Info = new PackageInfo("MyMod", "asdf", new SemVer.Version("0.1.0")) }; var dep = new Dependency("id", new SemVer.Range("^0.1.0"), new Uri("http://someLocation.com"));
             config.Dependencies.Add(dep);
             var depConfig = new Config() { Info = new PackageInfo("Cool Name", "id", new SemVer.Version("0.1.1")) };
             var innerDep = new Dependency("id2", new SemVer.Range("^0.1.0"), new Uri("http://random.com"));
@@ -54,6 +53,34 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
             Assert.True(deps.Count == 2);
             Assert.NotNull(deps.FirstOrDefault(d => d.Id == dep.Id && d.Url == dep.Url && d.VersionRange == dep.VersionRange));
             Assert.NotNull(deps.FirstOrDefault(d => d.Id == innerDep.Id && d.Url == innerDep.Url && d.VersionRange == innerDep.VersionRange));
+        }
+
+        [Fact]
+        public void CollectDependenciesNestedExisting()
+        {
+            var config = new Config() { Info = new PackageInfo("MyMod", "asdf", new SemVer.Version("0.1.0")) }; var dep = new Dependency("id", new SemVer.Range("^0.1.0"), new Uri("http://someLocation.com"));
+            var otherDep = new Dependency("needed", new SemVer.Range("^0.1.4"), new Uri("http://random.com"));
+            config.Dependencies.Add(dep);
+            config.Dependencies.Add(otherDep);
+            var depConfig = new Config() { Info = new PackageInfo("Cool Name", "id", new SemVer.Version("0.1.0")) };
+            var innerDep = new Dependency("needed", new SemVer.Range("^0.1.0"), new Uri("http://random.com"));
+            depConfig.Dependencies.Add(innerDep);
+            var innerDepConfig = new Config { Info = new PackageInfo("Needed by both", "needed", new SemVer.Version("0.1.4")) };
+
+            var configProvider = Utils.GetConfigProvider(config);
+            var uriHandler = Utils.GetUriHandler(new Dictionary<Dependency, Config>
+            {
+                { dep, depConfig }, { otherDep, innerDepConfig }, { innerDep, innerDepConfig }
+            });
+
+            var restorer = new RestoreHandler(configProvider.Object, uriHandler.Object);
+            // Should not throw
+            var deps = restorer.CollectDependencies();
+            // We should now only have TWO dependencies, one for "id" and one for "needed"
+            // The dependency for "needed" should have a specific version range of "^0.1.4" and not "^0.1.0"
+            Assert.True(deps.Count == 2);
+            Assert.NotNull(deps.FirstOrDefault(d => d.Id == dep.Id && d.Url == dep.Url && d.VersionRange == dep.VersionRange));
+            Assert.NotNull(deps.FirstOrDefault(d => d.Id == innerDep.Id && d.Url == innerDep.Url && d.VersionRange == otherDep.VersionRange));
         }
     }
 }
