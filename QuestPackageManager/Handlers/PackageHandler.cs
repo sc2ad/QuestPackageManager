@@ -23,6 +23,10 @@ namespace QuestPackageManager
 
         public event Action<PackageHandler, SemVer.Version>? OnVersionChanged;
 
+        public event Action<PackageHandler, Config, Uri>? OnConfigUrlChanged;
+
+        public event Action<PackageHandler, Uri>? OnUrlChanged;
+
         public PackageHandler(IConfigProvider configProvider)
         {
             this.configProvider = configProvider;
@@ -31,14 +35,23 @@ namespace QuestPackageManager
         public void CreatePackage(PackageInfo info)
         {
             if (info is null)
-                throw new ArgumentException(Resources.Info);
+                throw new ArgumentNullException(Resources.Info);
             var conf = configProvider.GetConfig(true);
             if (conf is null)
                 throw new ConfigException(Resources.ConfigNotCreated);
 
+            var tmp = conf.Info;
             conf.Info = info;
             // Call extra modification as necessary
-            OnPackageConfigured?.Invoke(this, conf, info);
+            try
+            {
+                OnPackageConfigured?.Invoke(this, conf, info);
+            }
+            catch
+            {
+                conf.Info = tmp;
+                throw;
+            }
             configProvider.Commit();
             // Perform extra modification
             OnPackageCreated?.Invoke(this, info);
@@ -55,19 +68,42 @@ namespace QuestPackageManager
                 throw new ConfigException(Resources.ConfigNotFound);
             if (conf.Info is null)
                 throw new ConfigException(Resources.ConfigInfoIsNull);
+            var tmp = conf.Info.Url;
             conf.Info.Url = url;
+            try
+            {
+                OnConfigUrlChanged?.Invoke(this, conf, url);
+            }
+            catch
+            {
+                conf.Info.Url = url;
+                throw;
+            }
+            configProvider.Commit();
+            OnUrlChanged?.Invoke(this, url);
         }
 
         public void ChangeId(string id)
         {
+            if (string.IsNullOrEmpty(id))
+                throw new ArgumentNullException(Resources._id);
             var conf = configProvider.GetConfig();
             if (conf is null)
                 throw new ConfigException(Resources.ConfigNotFound);
             if (conf.Info is null)
                 throw new ConfigException(Resources.ConfigInfoIsNull);
+            var tmp = conf.Info.Id;
             conf.Info.Id = id;
             // Call extra modification as necessary
-            OnConfigIdChanged?.Invoke(this, conf, id);
+            try
+            {
+                OnConfigIdChanged?.Invoke(this, conf, id);
+            }
+            catch
+            {
+                conf.Info.Id = tmp;
+                throw;
+            }
             configProvider.Commit();
             // Perform extra modification
             OnIdChanged?.Invoke(this, id);
@@ -78,14 +114,25 @@ namespace QuestPackageManager
 
         public void ChangeVersion(SemVer.Version newVersion)
         {
+            if (newVersion is null)
+                throw new ArgumentNullException(Resources._newVersion);
             var conf = configProvider.GetConfig();
             if (conf is null)
                 throw new ConfigException(Resources.ConfigNotFound);
             if (conf.Info is null)
                 throw new ConfigException(Resources.ConfigInfoIsNull);
-            conf.Info.Version = newVersion;
             // Call extra modification to config as necessary
-            OnConfigVersionChanged?.Invoke(this, conf, newVersion);
+            var tmp = conf.Info.Version;
+            conf.Info.Version = newVersion;
+            try
+            {
+                OnConfigVersionChanged?.Invoke(this, conf, newVersion);
+            }
+            catch
+            {
+                conf.Info.Version = tmp;
+                throw;
+            }
             configProvider.Commit();
             // Perform extra modification
             OnVersionChanged?.Invoke(this, newVersion);

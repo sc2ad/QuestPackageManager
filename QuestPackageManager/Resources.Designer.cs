@@ -61,6 +61,24 @@ namespace QuestPackageManager {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to id.
+        /// </summary>
+        internal static string _id {
+            get {
+                return ResourceManager.GetString("_id", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to newVersion.
+        /// </summary>
+        internal static string _newVersion {
+            get {
+                return ResourceManager.GetString("_newVersion", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Config PackageInfo is null!.
         /// </summary>
         internal static string ConfigInfoIsNull {

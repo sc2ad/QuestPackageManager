@@ -141,4 +141,10 @@
   <data name="Version" xml:space="preserve">
     <value>Version</value>
   </data>
+  <data name="_id" xml:space="preserve">
+    <value>id</value>
+  </data>
+  <data name="_newVersion" xml:space="preserve">
+    <value>newVersion</value>
+  </data>
 </root>

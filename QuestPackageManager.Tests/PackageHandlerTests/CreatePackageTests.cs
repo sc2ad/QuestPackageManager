@@ -3,9 +3,9 @@ using QuestPackageManager.Data;
 using System;
 using Xunit;
 
-namespace QuestPackageManager.Tests
+namespace QuestPackageManager.Tests.PackageHandlerTests
 {
-    public class PackageHandlerTests
+    public class CreatePackageTests
     {
         [Fact]
         public void TestCreatePackageStandard()
@@ -24,7 +24,7 @@ namespace QuestPackageManager.Tests
 
             // Start with an empty config
             var config = new Config();
-            var configProvider = GetConfigProvider(config);
+            var configProvider = Utils.GetConfigProvider(config);
 
             var handler = new PackageHandler(configProvider.Object);
 
@@ -63,7 +63,7 @@ namespace QuestPackageManager.Tests
             }
 
             var config = new Config();
-            var configProvider = GetConfigProvider(config, true);
+            var configProvider = Utils.GetConfigProvider(config, true);
 
             var handler = new PackageHandler(configProvider.Object);
             handler.OnPackageConfigured += Handler_OnPackageConfigured;
@@ -79,21 +79,60 @@ namespace QuestPackageManager.Tests
             // Ensure callbacks did not happen
             Assert.False(calledConfigured);
             Assert.False(calledCreated);
+            // Ensure an ANE is thrown for a null package info
+            Assert.Throws<ArgumentNullException>(() => handler.CreatePackage(null));
         }
 
-        private Mock<IConfigProvider> GetConfigProvider(Config config, bool failToCreate = false, bool failToGet = false)
+        [Fact]
+        public void TestCreatePackagePlugin()
         {
-            var mock = new Mock<IConfigProvider>();
-            mock.Setup(m => m.Commit()).Verifiable();
-            if (failToCreate)
-                mock.Setup(m => m.GetConfig(true)).Returns<Config>(null);
-            else
-                mock.Setup(m => m.GetConfig(true)).Returns(config);
-            if (failToGet)
-                mock.Setup(m => m.GetConfig(false)).Returns<Config>(null);
-            else
-                mock.Setup(m => m.GetConfig(false)).Returns(config);
-            return mock;
+            // Callback which throws
+            static void Handler_OnPackageConfigured(PackageHandler arg1, Config arg2, PackageInfo arg3)
+            {
+                // Modify config
+                arg2.Info.Name = "Modified Name!";
+            }
+
+            var config = new Config();
+            var configProvider = Utils.GetConfigProvider(config);
+
+            var handler = new PackageHandler(configProvider.Object);
+            handler.OnPackageConfigured += Handler_OnPackageConfigured;
+
+            var info = new PackageInfo("CoolName", "CoolId", new SemVer.Version("0.1.0")) { Url = new Uri("http://test.com") };
+            handler.CreatePackage(info);
+            // Ensure config has been committed
+            configProvider.Verify(mocks => mocks.Commit(), Times.Once);
+            // Ensure config has changed to match
+            Assert.True(config.Info != null);
+            Assert.True(config.Info.Id == info.Id);
+            Assert.True(config.Info.Name == "Modified Name!");
+            Assert.True(config.Info.Version == info.Version);
+            Assert.True(config.Info.Url == info.Url);
+        }
+
+        [Fact]
+        public void TestCreatePackagePluginException()
+        {
+            // Callback which throws
+            static void Handler_OnPackageConfigured(PackageHandler arg1, Config arg2, PackageInfo arg3)
+            {
+                throw new ArgumentOutOfRangeException();
+            }
+
+            var config = new Config();
+            var configProvider = Utils.GetConfigProvider(config);
+
+            var handler = new PackageHandler(configProvider.Object);
+            handler.OnPackageConfigured += Handler_OnPackageConfigured;
+
+            var info = new PackageInfo("CoolName", "CoolId", new SemVer.Version("0.1.0")) { Url = new Uri("http://test.com") };
+            // Ensure a ArgumentOutOfRangeException is thrown
+            Assert.Throws<ArgumentOutOfRangeException>(() => handler.CreatePackage(info));
+            // Ensure config has not been committed
+            configProvider.Verify(mocks => mocks.Commit(), Times.Never);
+            // Ensure config has not changed
+            Assert.True(config.Info is null);
         }
     }
 }
