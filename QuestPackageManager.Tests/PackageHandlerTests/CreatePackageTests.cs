@@ -8,7 +8,7 @@ namespace QuestPackageManager.Tests.PackageHandlerTests
     public class CreatePackageTests
     {
         [Fact]
-        public void TestCreatePackageStandard()
+        public void CreatePackageStandard()
         {
             // Callbacks
             bool calledConfigured = false;
@@ -48,7 +48,7 @@ namespace QuestPackageManager.Tests.PackageHandlerTests
         }
 
         [Fact]
-        public void TestCreatePackageExceptions()
+        public void CreatePackageExceptions()
         {
             // Callbacks
             bool calledConfigured = false;
@@ -84,7 +84,7 @@ namespace QuestPackageManager.Tests.PackageHandlerTests
         }
 
         [Fact]
-        public void TestCreatePackagePlugin()
+        public void CreatePackagePlugin()
         {
             // Callback which throws
             static void Handler_OnPackageConfigured(PackageHandler arg1, Config arg2, PackageInfo arg3)
@@ -112,7 +112,7 @@ namespace QuestPackageManager.Tests.PackageHandlerTests
         }
 
         [Fact]
-        public void TestCreatePackagePluginException()
+        public void CreatePackagePluginException()
         {
             // Callback which throws
             static void Handler_OnPackageConfigured(PackageHandler arg1, Config arg2, PackageInfo arg3)

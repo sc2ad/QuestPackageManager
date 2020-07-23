@@ -67,7 +67,7 @@ namespace QuestPackageManager
             }
         }
 
-        public void CollectDependencies()
+        public List<Dependency> CollectDependencies()
         {
             var config = configProvider.GetConfig();
             if (config is null)
@@ -78,8 +78,7 @@ namespace QuestPackageManager
             config.Dependencies.Clear();
             // Call post dependency resolution code
             OnDependenciesCollected?.Invoke(this, myDependencies);
-            config.Dependencies.AddRange(myDependencies);
-            configProvider.Commit();
+            return myDependencies;
         }
 
         public void Restore()
