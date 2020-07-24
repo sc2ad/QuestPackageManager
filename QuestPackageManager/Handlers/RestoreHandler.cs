@@ -36,8 +36,13 @@ namespace QuestPackageManager
             // Then we want to check to ensure that the config file we have gotten is within our version
             if (depConfig.Info is null)
                 throw new ConfigException($"Config is of an invalid format for: {d.Id} at: {d.Url} - No info!");
+            if (string.IsNullOrEmpty(depConfig.Info.Id))
+                throw new ConfigException($"Config is of an invalid format for: {d.Id} at: {d.Url} - No Id!");
+            // Check to make sure the config's version matches our dependency's version
+            if (!depConfig.Info.Id.Equals(d.Id, StringComparison.OrdinalIgnoreCase))
+                throw new ConfigException($"Dependency and config have different ids! {d.Id} != {depConfig.Info.Id}!");
             if (depConfig.Info.Version is null)
-                throw new ConfigException($"Config is of an invalid format for: {d.Id} at: {d.Url} - No version!");
+                throw new ConfigException($"Config is of an invalid format for: {d.Id} at: {d.Url} - No Version!");
             // If it isn't, we fail to match our dependencies, exit out.
             if (!d.VersionRange.IsSatisfied(depConfig.Info.Version))
                 throw new DependencyException($"Dependency unmet! Want: {d.VersionRange} got: {depConfig.Info.Version} for: {d.Id} at: {d.Url}");
