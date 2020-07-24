@@ -97,10 +97,7 @@ namespace QuestPackageManager
                 throw new ConfigException(Resources.ConfigNotFound);
             if (config.Info is null)
                 throw new ConfigException(Resources.ConfigInfoIsNull);
-            var myDependencies = config.Dependencies.ToList();
-            foreach (var d in config.Dependencies)
-                // For each dependency, collect its dependencies
-                CollectDependencies(config.Info.Id, ref myDependencies, d);
+            var myDependencies = CollectDependencies();
 
             // After all dependencies are grabbed, compare it with our current met dependencies
             foreach (var d in myDependencies)
