@@ -11,7 +11,7 @@ namespace QPM
     [Subcommand(typeof(PackageCommand), typeof(DependencyCommand), typeof(RestoreCommand)/*, typeof(PublishCommand) */)]
     internal class Program
     {
-        private const string PackageFileName = "qpm.json";
+        internal const string PackageFileName = "qpm.json";
         internal static DependencyHandler DependencyHandler { get; private set; }
         internal static PackageHandler PackageHandler { get; private set; }
         internal static RestoreHandler RestoreHandler { get; private set; }
@@ -27,6 +27,8 @@ namespace QPM
             PackageHandler = new PackageHandler(configProvider);
             DependencyHandler = new DependencyHandler(configProvider);
             //RestoreHandler = new RestoreHandler(configProvider, uriHandler);
+            // Register callbacks
+
             int exit = -1;
             try
             {

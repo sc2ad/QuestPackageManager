@@ -1,4 +1,4 @@
-﻿using QuestPackageManager.Data;
+using QuestPackageManager.Data;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -27,6 +27,18 @@ namespace QPM
                 PropertyNameCaseInsensitive = true,
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             };
+        }
+
+        public Config From(string data)
+        {
+            try
+            {
+                return JsonSerializer.Deserialize<Config>(data, options);
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         public void Commit()
