@@ -129,6 +129,12 @@
   <data name="Dependency" xml:space="preserve">
     <value>Dependency</value>
   </data>
+  <data name="DependencyIdNull" xml:space="preserve">
+    <value>Dependency Id is null!</value>
+  </data>
+  <data name="DependencyNull" xml:space="preserve">
+    <value>Dependency is null!</value>
+  </data>
   <data name="Id" xml:space="preserve">
     <value>Id</value>
   </data>

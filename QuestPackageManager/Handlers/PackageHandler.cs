@@ -27,6 +27,10 @@ namespace QuestPackageManager
 
         public event Action<PackageHandler, Uri>? OnUrlChanged;
 
+        public event Action<PackageHandler, Config, string>? OnConfigNameChanged;
+
+        public event Action<PackageHandler, string>? OnNameChanged;
+
         public PackageHandler(IConfigProvider configProvider)
         {
             this.configProvider = configProvider;
@@ -76,11 +80,33 @@ namespace QuestPackageManager
             }
             catch
             {
-                conf.Info.Url = url;
+                conf.Info.Url = tmp;
                 throw;
             }
             configProvider.Commit();
             OnUrlChanged?.Invoke(this, url);
+        }
+
+        public void ChangeName(string name)
+        {
+            var conf = configProvider.GetConfig();
+            if (conf is null)
+                throw new ConfigException(Resources.ConfigNotFound);
+            if (conf.Info is null)
+                throw new ConfigException(Resources.ConfigInfoIsNull);
+            var tmp = conf.Info.Name;
+            conf.Info.Name = name;
+            try
+            {
+                OnConfigNameChanged?.Invoke(this, conf, name);
+            }
+            catch
+            {
+                conf.Info.Name = tmp;
+                throw;
+            }
+            configProvider.Commit();
+            OnNameChanged?.Invoke(this, name);
         }
 
         public void ChangeId(string id)

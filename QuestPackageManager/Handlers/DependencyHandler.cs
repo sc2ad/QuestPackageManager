@@ -30,6 +30,10 @@ namespace QuestPackageManager
 
         public void AddDependency(Dependency dep)
         {
+            if (dep is null)
+                throw new ArgumentNullException(nameof(dep), Resources.DependencyNull);
+            if (dep.Id is null)
+                throw new ArgumentException(Resources.DependencyIdNull);
             // This should be faily straightforward:
             // The given dependency should be added to the config, the config should be committed
             // Then we should perform (automatically or manually) restore in order to ensure we can obtain this dependency.
@@ -37,11 +41,15 @@ namespace QuestPackageManager
             var conf = configProvider.GetConfig();
             if (conf is null)
                 throw new ConfigException(Resources.ConfigNotFound);
+            if (conf.Info is null)
+                throw new ConfigException(Resources.ConfigInfoIsNull);
+            if (conf.Info.Id.Equals(dep.Id, StringComparison.OrdinalIgnoreCase))
+                throw new DependencyException($"Recursive dependency! Tried to add dependency: {dep.Id}, but package ID matches!");
             // Ids are not case sensitive
-            var existing = conf.Dependencies.FirstOrDefault(d => d.Id.Equals(dep.Id, StringComparison.OrdinalIgnoreCase));
+            var existing = conf.Dependencies.FirstOrDefault(d => dep.Id.Equals(d.Id, StringComparison.OrdinalIgnoreCase));
             if (existing != null)
             {
-                existing.VersionRange = (dep ?? throw new ArgumentException(Resources.Dependency)).VersionRange;
+                existing.VersionRange = (dep ?? throw new ArgumentNullException(Resources.Dependency)).VersionRange;
                 existing.Url = dep.Url;
                 existing.AdditionalData.Clear();
                 foreach (var p in dep.AdditionalData)
@@ -65,7 +73,7 @@ namespace QuestPackageManager
             if (conf is null)
                 throw new ConfigException(Resources.ConfigNotFound);
             // Get matching dependency, there should only be one per each id
-            var matchingDep = conf.Dependencies.FirstOrDefault(d => d.Id.Equals(matchingId, StringComparison.OrdinalIgnoreCase));
+            var matchingDep = conf.Dependencies.FirstOrDefault(d => matchingId.Equals(d.Id, StringComparison.OrdinalIgnoreCase));
             if (matchingDep is null)
                 return false;
             // Ids are not case sensitive

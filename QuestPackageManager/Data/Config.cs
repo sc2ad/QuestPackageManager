@@ -13,10 +13,13 @@ namespace QuestPackageManager.Data
         public string DependenciesDir { get; set; } = "extern";
         public PackageInfo? Info { get; set; }
 
-        public List<Dependency> Dependencies { get; } = new List<Dependency>();
+        [JsonInclude]
+        public List<Dependency> Dependencies { get; private set; } = new List<Dependency>();
 
-        public List<Dependency> IncludedDependencies { get; } = new List<Dependency>();
+        [JsonInclude]
+        public List<Dependency> IncludedDependencies { get; private set; } = new List<Dependency>();
 
-        public Dictionary<string, string?> AdditionalData { get; } = new Dictionary<string, string?>();
+        [JsonInclude]
+        public Dictionary<string, string?> AdditionalData { get; private set; } = new Dictionary<string, string?>();
     }
 }

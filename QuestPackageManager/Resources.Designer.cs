@@ -115,6 +115,24 @@ namespace QuestPackageManager {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Dependency Id is null!.
+        /// </summary>
+        internal static string DependencyIdNull {
+            get {
+                return ResourceManager.GetString("DependencyIdNull", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Dependency is null!.
+        /// </summary>
+        internal static string DependencyNull {
+            get {
+                return ResourceManager.GetString("DependencyNull", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Id.
         /// </summary>
         internal static string Id {

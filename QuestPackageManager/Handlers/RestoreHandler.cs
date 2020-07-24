@@ -27,6 +27,13 @@ namespace QuestPackageManager
 
         private void CollectDependencies(string thisId, ref List<Dependency> myDependencies, Dependency d)
         {
+            // Null assertions
+            if (d is null)
+                throw new ArgumentNullException(nameof(d), Resources.DependencyNull);
+            if (d.Id is null)
+                throw new ArgumentException(Resources.DependencyIdNull);
+            if (d.VersionRange is null)
+                throw new ArgumentException($"Dependency: {d.Id} {nameof(d.VersionRange)} is null!");
             if (thisId.Equals(d.Id, StringComparison.OrdinalIgnoreCase))
                 throw new DependencyException($"Recursive dependency! Tried to get dependency: {d.Id} at: {d.Url}, but {thisId} matches {d.Id}!");
             // We want to convert our uri into a config file
@@ -49,6 +56,8 @@ namespace QuestPackageManager
             // Otherwise, we iterate over all of the config's dependencies
             foreach (var innerD in depConfig.Dependencies)
             {
+                if (innerD.Id is null)
+                    throw new ConfigException($"Config id: {depConfig.Info.Id} at: {d.Url} has dependency with null id!");
                 var existing = myDependencies.FirstOrDefault(dep => innerD.Id.Equals(dep.Id, StringComparison.OrdinalIgnoreCase));
                 if (existing is null)
                 {
@@ -62,6 +71,8 @@ namespace QuestPackageManager
                     // If it is not, we check to see if our dependency includes the dependency used
                     // ex: MyDep@^0.1.0
                     // TheirDep.Dependencies[MyDep@^0.0.1] should be valid
+                    if (existing.VersionRange is null)
+                        throw new ConfigException($"Dependency: {existing.Id} {nameof(existing.VersionRange)} is null!");
                     var intersection = existing.VersionRange.Intersect(innerD.VersionRange);
                     if (intersection.ToString() == "<0.0.0")
                         // Case where intersections do not overlap
@@ -102,6 +113,8 @@ namespace QuestPackageManager
             // After all dependencies are grabbed, compare it with our current met dependencies
             foreach (var d in myDependencies)
             {
+                if (d.Id is null)
+                    throw new ConfigException(Resources.DependencyIdNull);
                 var included = config.IncludedDependencies.FirstOrDefault(dep => d.Id.Equals(dep.Id, StringComparison.OrdinalIgnoreCase));
                 if (included is null)
                 {
@@ -113,6 +126,8 @@ namespace QuestPackageManager
                     uriHandler.ResolveDependency(d);
                     config.IncludedDependencies.Add(d);
                 }
+                else if (included.VersionRange is null)
+                    throw new ConfigException($"Dependency: {included} {nameof(included.VersionRange)} is null!");
                 else if (included.VersionRange.Intersect(d.VersionRange).ToString() == "<0.0.0")
                     // Case where versions do not intersect
                     // TODO: Add a way to fixup included dependencies
