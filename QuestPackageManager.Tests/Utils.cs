@@ -29,7 +29,7 @@ namespace QuestPackageManager.Tests
         {
             var mock = new Mock<IUriHandler>();
             mock.Setup(m => m.GetConfig(It.IsAny<Dependency>())).Returns<Dependency>(d => map[d]);
-            mock.Setup(m => m.ResolveDependency(It.IsAny<Dependency>()));
+            mock.Setup(m => m.ResolveDependency(It.IsAny<Config>(), It.IsAny<Dependency>()));
             return mock;
         }
     }

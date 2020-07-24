@@ -123,7 +123,7 @@ namespace QuestPackageManager
                     // If it throws, it is the caller's responsibilty to catch
                     // This function is responsible for doing anything necessary to the project in order to ensure the dependency has been resolved correctly.
                     // It should throw if anything fails
-                    uriHandler.ResolveDependency(d);
+                    uriHandler.ResolveDependency(config, d);
                     config.IncludedDependencies.Add(d);
                 }
                 else if (included.VersionRange is null)
