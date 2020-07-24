@@ -106,6 +106,9 @@ namespace QuestPackageManager
             var config = configProvider.GetConfig();
             if (config is null)
                 throw new ConfigException(Resources.ConfigNotFound);
+            var localConfig = configProvider.GetLocalConfig(true);
+            if (localConfig is null)
+                throw new ConfigException(Resources.LocalConfigNotCreated);
             if (config.Info is null)
                 throw new ConfigException(Resources.ConfigInfoIsNull);
             var myDependencies = CollectDependencies();
@@ -115,7 +118,7 @@ namespace QuestPackageManager
             {
                 if (d.Id is null)
                     throw new ConfigException(Resources.DependencyIdNull);
-                var included = config.IncludedDependencies.FirstOrDefault(dep => d.Id.Equals(dep.Id, StringComparison.OrdinalIgnoreCase));
+                var included = localConfig.IncludedDependencies.FirstOrDefault(dep => d.Id.Equals(dep.Id, StringComparison.OrdinalIgnoreCase));
                 if (included is null)
                 {
                     // Add d to config.MetDependencies
@@ -124,7 +127,7 @@ namespace QuestPackageManager
                     // This function is responsible for doing anything necessary to the project in order to ensure the dependency has been resolved correctly.
                     // It should throw if anything fails
                     uriHandler.ResolveDependency(config, d);
-                    config.IncludedDependencies.Add(d);
+                    localConfig.IncludedDependencies.Add(d);
                 }
                 else if (included.VersionRange is null)
                     throw new ConfigException($"Dependency: {included} {nameof(included.VersionRange)} is null!");

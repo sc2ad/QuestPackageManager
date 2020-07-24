@@ -151,6 +151,15 @@ namespace QuestPackageManager {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Local config could not be found or created!.
+        /// </summary>
+        internal static string LocalConfigNotCreated {
+            get {
+                return ResourceManager.GetString("LocalConfigNotCreated", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Name.
         /// </summary>
         internal static string Name {

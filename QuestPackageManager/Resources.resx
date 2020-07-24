@@ -141,6 +141,9 @@
   <data name="Info" xml:space="preserve">
     <value>Info</value>
   </data>
+  <data name="LocalConfigNotCreated" xml:space="preserve">
+    <value>Local config could not be found or created!</value>
+  </data>
   <data name="Name" xml:space="preserve">
     <value>Name</value>
   </data>

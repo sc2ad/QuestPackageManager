@@ -11,16 +11,20 @@ namespace QPM
 {
     internal class LocalConfigProvider : IConfigProvider
     {
-        private readonly string path;
+        private readonly string configPath;
+        private readonly string localConfigPath;
 
         private Config config;
+        private LocalConfig localConfig;
         private bool configGotten;
+        private bool localConfigGotten;
 
         private JsonSerializerOptions options;
 
-        public LocalConfigProvider(string dir, string fileName)
+        public LocalConfigProvider(string dir, string configFileName, string localFileName)
         {
-            path = Path.Combine(dir, fileName);
+            configPath = Path.Combine(dir, configFileName);
+            localConfigPath = Path.Combine(dir, localFileName);
             options = new JsonSerializerOptions
             {
                 WriteIndented = true,
@@ -43,10 +47,43 @@ namespace QPM
 
         public void Commit()
         {
-            if (config is null)
-                throw new InvalidOperationException("Cannot commit config when it is null!");
-            var str = JsonSerializer.Serialize(config, options);
-            File.WriteAllText(path, str);
+            if (config is null && localConfig is null)
+                throw new InvalidOperationException("Cannot commit config or localConfig when both are null!");
+            if (config != null)
+            {
+                var str = JsonSerializer.Serialize(config, options);
+                File.WriteAllText(configPath, str);
+            }
+            if (localConfig != null)
+            {
+                var str = JsonSerializer.Serialize(localConfig, options);
+                File.WriteAllText(localConfigPath, str);
+            }
+        }
+
+        public LocalConfig GetLocalConfig(bool createOnFail = false)
+        {
+            if (localConfigGotten)
+                return localConfig;
+            localConfigGotten = true;
+            localConfig = null;
+            if (!File.Exists(localConfigPath))
+            {
+                if (createOnFail)
+                {
+                    localConfig = new LocalConfig();
+                    // Commit the created config when we explicitly want to create on failure
+                    Commit();
+                }
+            }
+            else
+            {
+                // These will throw as needed to the caller on failure
+                // TODO: If we can solve the issue by recreating the JSON, we can try that here
+                var json = File.ReadAllText(localConfigPath);
+                localConfig = JsonSerializer.Deserialize<LocalConfig>(json, options);
+            }
+            return localConfig;
         }
 
         public Config GetConfig(bool createOnFail = false)
@@ -55,7 +92,7 @@ namespace QPM
                 return config;
             configGotten = true;
             config = null;
-            if (!File.Exists(path))
+            if (!File.Exists(configPath))
             {
                 if (createOnFail)
                 {
@@ -68,7 +105,7 @@ namespace QPM
             {
                 // These will throw as needed to the caller on failure
                 // TODO: If we can solve the issue by recreating the JSON, we can try that here
-                var json = File.ReadAllText(path);
+                var json = File.ReadAllText(configPath);
                 config = JsonSerializer.Deserialize<Config>(json, options);
             }
             return config;
