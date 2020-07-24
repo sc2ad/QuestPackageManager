@@ -127,5 +127,88 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
             uriHandler.Verify(mocks => mocks.GetConfig(dep), Times.Once);
             uriHandler.Verify(mocks => mocks.GetConfig(innerDep), Times.Never);
         }
+
+        [Fact]
+        public void CollectDependenciesDoNotMatchSimple()
+        {
+            var config = new Config() { Info = new PackageInfo("MyMod", "asdf", new SemVer.Version("0.1.0")) };
+            var dep = new Dependency("id", new SemVer.Range("^0.1.0"), new Uri("http://someLocation.com"));
+            config.Dependencies.Add(dep);
+            var depConfig = new Config() { Info = new PackageInfo("Cool Name", "id", new SemVer.Version("0.0.1")) };
+
+            var configProvider = Utils.GetConfigProvider(config);
+            var uriHandler = Utils.GetUriHandler(new Dictionary<Dependency, Config> { { dep, depConfig } });
+
+            var restorer = new RestoreHandler(configProvider.Object, uriHandler.Object);
+
+            Assert.Contains("id", Assert.Throws<DependencyException>(() => restorer.CollectDependencies()).Message);
+        }
+
+        [Fact]
+        public void CollectDependenciesDoNotMatchNested()
+        {
+            var config = new Config() { Info = new PackageInfo("MyMod", "asdf", new SemVer.Version("0.1.0")) };
+            var dep = new Dependency("id", new SemVer.Range("^0.1.0"), new Uri("http://someLocation.com"));
+            config.Dependencies.Add(dep);
+            var depConfig = new Config() { Info = new PackageInfo("Cool Name", "id", new SemVer.Version("0.1.1")) };
+            var innerDep = new Dependency("id2", new SemVer.Range("^0.1.0"), new Uri("http://random.com"));
+            depConfig.Dependencies.Add(innerDep);
+            var innerDepConfig = new Config { Info = new PackageInfo("Cool Name", "id2", new SemVer.Version("0.0.1")) };
+
+            var configProvider = Utils.GetConfigProvider(config);
+            var uriHandler = Utils.GetUriHandler(new Dictionary<Dependency, Config> { { dep, depConfig }, { innerDep, innerDepConfig } });
+
+            var restorer = new RestoreHandler(configProvider.Object, uriHandler.Object);
+
+            Assert.Contains("id2", Assert.Throws<DependencyException>(() => restorer.CollectDependencies()).Message);
+        }
+
+        [Fact]
+        public void CollectDependenciesDoNotMatchExistingNested()
+        {
+            var config = new Config() { Info = new PackageInfo("MyMod", "asdf", new SemVer.Version("0.1.0")) };
+            var dep = new Dependency("id", new SemVer.Range("^0.1.0"), new Uri("http://someLocation.com"));
+            var otherDep = new Dependency("needed", new SemVer.Range("^0.1.4"), new Uri("http://random.com"));
+            config.Dependencies.Add(dep);
+            config.Dependencies.Add(otherDep);
+            var depConfig = new Config() { Info = new PackageInfo("Cool Name", "id", new SemVer.Version("0.1.0")) };
+            var innerDep = new Dependency("needed", new SemVer.Range("^0.1.0"), new Uri("http://random.com"));
+            depConfig.Dependencies.Add(innerDep);
+            var innerDepConfig = new Config { Info = new PackageInfo("Needed by both", "needed", new SemVer.Version("0.0.4")) };
+
+            var configProvider = Utils.GetConfigProvider(config);
+            var uriHandler = Utils.GetUriHandler(new Dictionary<Dependency, Config>
+            {
+                { dep, depConfig }, { otherDep, innerDepConfig }, { innerDep, innerDepConfig }
+            });
+
+            var restorer = new RestoreHandler(configProvider.Object, uriHandler.Object);
+
+            Assert.Contains("needed", Assert.Throws<DependencyException>(() => restorer.CollectDependencies()).Message);
+        }
+
+        [Fact]
+        public void CollectDependenciesDoNotMatchRangeExistingNested()
+        {
+            var config = new Config() { Info = new PackageInfo("MyMod", "asdf", new SemVer.Version("0.1.0")) };
+            var dep = new Dependency("id", new SemVer.Range("^0.1.0"), new Uri("http://someLocation.com"));
+            var otherDep = new Dependency("needed", new SemVer.Range("^0.2.4"), new Uri("http://random.com"));
+            config.Dependencies.Add(dep);
+            config.Dependencies.Add(otherDep);
+            var depConfig = new Config() { Info = new PackageInfo("Cool Name", "id", new SemVer.Version("0.1.0")) };
+            var innerDep = new Dependency("needed", new SemVer.Range("^0.1.0"), new Uri("http://random.com"));
+            depConfig.Dependencies.Add(innerDep);
+            var innerDepConfig = new Config { Info = new PackageInfo("Needed by both", "needed", new SemVer.Version("0.1.4")) };
+
+            var configProvider = Utils.GetConfigProvider(config);
+            var uriHandler = Utils.GetUriHandler(new Dictionary<Dependency, Config>
+            {
+                { dep, depConfig }, { otherDep, innerDepConfig }, { innerDep, innerDepConfig }
+            });
+
+            var restorer = new RestoreHandler(configProvider.Object, uriHandler.Object);
+
+            Assert.Contains("needed", Assert.Throws<DependencyException>(() => restorer.CollectDependencies()).Message);
+        }
     }
 }
