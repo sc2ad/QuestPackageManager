@@ -15,7 +15,7 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
         public void CollectDependenciesSimple()
         {
             var config = new Config() { Info = new PackageInfo("MyMod", "asdf", new SemVer.Version("0.1.0")) };
-            var dep = new Dependency("id", new SemVer.Range("^0.1.0"), new Uri("http://someLocation.com"));
+            var dep = new Dependency("id", new SemVer.Range("^0.1.0"));
             config.Dependencies.Add(dep);
             var depConfig = new Config() { Info = new PackageInfo("Cool Name", "id", new SemVer.Version("0.1.1")) };
 
@@ -29,7 +29,6 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
             var checkD = deps.SingleOrDefault();
             Assert.True(checkD != null);
             Assert.True(checkD.Id == dep.Id);
-            Assert.True(checkD.Url == dep.Url);
             Assert.True(checkD.VersionRange == dep.VersionRange);
         }
 
@@ -37,10 +36,10 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
         public void CollectDependenciesNestedNew()
         {
             var config = new Config() { Info = new PackageInfo("MyMod", "asdf", new SemVer.Version("0.1.0")) };
-            var dep = new Dependency("id", new SemVer.Range("^0.1.0"), new Uri("http://someLocation.com"));
+            var dep = new Dependency("id", new SemVer.Range("^0.1.0"));
             config.Dependencies.Add(dep);
             var depConfig = new Config() { Info = new PackageInfo("Cool Name", "id", new SemVer.Version("0.1.1")) };
-            var innerDep = new Dependency("id2", new SemVer.Range("^0.1.0"), new Uri("http://random.com"));
+            var innerDep = new Dependency("id2", new SemVer.Range("^0.1.0"));
             depConfig.Dependencies.Add(innerDep);
             var innerDepConfig = new Config { Info = new PackageInfo("Cool Name", "id2", new SemVer.Version("0.1.1")) };
 
@@ -53,20 +52,20 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
             // We should now have TWO dependencies, one for id and one for id2
             // Order of these dependencies should not matter. They just both need to be in there.
             Assert.True(deps.Count == 2);
-            Assert.NotNull(deps.FirstOrDefault(d => d.Id == dep.Id && d.Url == dep.Url && d.VersionRange == dep.VersionRange));
-            Assert.NotNull(deps.FirstOrDefault(d => d.Id == innerDep.Id && d.Url == innerDep.Url && d.VersionRange == innerDep.VersionRange));
+            Assert.NotNull(deps.FirstOrDefault(d => d.Id == dep.Id && d.VersionRange == dep.VersionRange));
+            Assert.NotNull(deps.FirstOrDefault(d => d.Id == innerDep.Id && d.VersionRange == innerDep.VersionRange));
         }
 
         [Fact]
         public void CollectDependenciesNestedExisting()
         {
             var config = new Config() { Info = new PackageInfo("MyMod", "asdf", new SemVer.Version("0.1.0")) };
-            var dep = new Dependency("id", new SemVer.Range("^0.1.0"), new Uri("http://someLocation.com"));
-            var otherDep = new Dependency("needed", new SemVer.Range("^0.1.4"), new Uri("http://random.com"));
+            var dep = new Dependency("id", new SemVer.Range("^0.1.0"));
+            var otherDep = new Dependency("needed", new SemVer.Range("^0.1.4"));
             config.Dependencies.Add(dep);
             config.Dependencies.Add(otherDep);
             var depConfig = new Config() { Info = new PackageInfo("Cool Name", "id", new SemVer.Version("0.1.0")) };
-            var innerDep = new Dependency("needed", new SemVer.Range("^0.1.0"), new Uri("http://random.com"));
+            var innerDep = new Dependency("needed", new SemVer.Range("^0.1.0"));
             depConfig.Dependencies.Add(innerDep);
             var innerDepConfig = new Config { Info = new PackageInfo("Needed by both", "needed", new SemVer.Version("0.1.4")) };
 
@@ -82,15 +81,15 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
             // We should now only have TWO dependencies, one for "id" and one for "needed"
             // The dependency for "needed" should have a specific version range of "^0.1.4" and not "^0.1.0"
             Assert.True(deps.Count == 2);
-            Assert.NotNull(deps.FirstOrDefault(d => d.Id == dep.Id && d.Url == dep.Url && d.VersionRange == dep.VersionRange));
-            Assert.NotNull(deps.FirstOrDefault(d => d.Id == innerDep.Id && d.Url == innerDep.Url && d.VersionRange == otherDep.VersionRange));
+            Assert.NotNull(deps.FirstOrDefault(d => d.Id == dep.Id && d.VersionRange == dep.VersionRange));
+            Assert.NotNull(deps.FirstOrDefault(d => d.Id == innerDep.Id && d.VersionRange == otherDep.VersionRange));
         }
 
         [Fact]
         public void CollectDependenciesRecursive()
         {
             var config = new Config() { Info = new PackageInfo("MyMod", "id", new SemVer.Version("0.1.0")) };
-            var dep = new Dependency("id", new SemVer.Range("^0.1.0"), new Uri("http://someLocation.com"));
+            var dep = new Dependency("id", new SemVer.Range("^0.1.0"));
             config.Dependencies.Add(dep);
             var depConfig = new Config() { Info = new PackageInfo("Cool Name", "id", new SemVer.Version("0.1.0")) };
 
@@ -108,12 +107,12 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
         public void CollectDependenciesNestedRecursive()
         {
             var config = new Config() { Info = new PackageInfo("MyMod", "id", new SemVer.Version("0.1.0")) };
-            var dep = new Dependency("asdf", new SemVer.Range("^0.1.0"), new Uri("http://someLocation.com"));
+            var dep = new Dependency("asdf", new SemVer.Range("^0.1.0"));
             config.Dependencies.Add(dep);
             var depConfig = new Config() { Info = new PackageInfo("Cool Name", "asdf", new SemVer.Version("0.1.0")) };
             // It's undefined behavior to attempt to load a config that allows its dependencies to ask for itself
             // Therefore, we will test ourselves, and all other configs must follow this same principle
-            var innerDep = new Dependency("id", new SemVer.Range("^0.1.0"), new Uri("http://test.com"));
+            var innerDep = new Dependency("id", new SemVer.Range("^0.1.0"));
             depConfig.Dependencies.Add(innerDep);
             var innerDepConfig = new Config();
 
@@ -132,7 +131,7 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
         public void CollectDependenciesDoNotMatchSimple()
         {
             var config = new Config() { Info = new PackageInfo("MyMod", "asdf", new SemVer.Version("0.1.0")) };
-            var dep = new Dependency("id", new SemVer.Range("^0.1.0"), new Uri("http://someLocation.com"));
+            var dep = new Dependency("id", new SemVer.Range("^0.1.0"));
             config.Dependencies.Add(dep);
             var depConfig = new Config() { Info = new PackageInfo("Cool Name", "id", new SemVer.Version("0.0.1")) };
 
@@ -148,10 +147,10 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
         public void CollectDependenciesDoNotMatchNested()
         {
             var config = new Config() { Info = new PackageInfo("MyMod", "asdf", new SemVer.Version("0.1.0")) };
-            var dep = new Dependency("id", new SemVer.Range("^0.1.0"), new Uri("http://someLocation.com"));
+            var dep = new Dependency("id", new SemVer.Range("^0.1.0"));
             config.Dependencies.Add(dep);
             var depConfig = new Config() { Info = new PackageInfo("Cool Name", "id", new SemVer.Version("0.1.1")) };
-            var innerDep = new Dependency("id2", new SemVer.Range("^0.1.0"), new Uri("http://random.com"));
+            var innerDep = new Dependency("id2", new SemVer.Range("^0.1.0"));
             depConfig.Dependencies.Add(innerDep);
             var innerDepConfig = new Config { Info = new PackageInfo("Cool Name", "id2", new SemVer.Version("0.0.1")) };
 
@@ -167,12 +166,12 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
         public void CollectDependenciesDoNotMatchExistingNested()
         {
             var config = new Config() { Info = new PackageInfo("MyMod", "asdf", new SemVer.Version("0.1.0")) };
-            var dep = new Dependency("id", new SemVer.Range("^0.1.0"), new Uri("http://someLocation.com"));
-            var otherDep = new Dependency("needed", new SemVer.Range("^0.1.4"), new Uri("http://random.com"));
+            var dep = new Dependency("id", new SemVer.Range("^0.1.0"));
+            var otherDep = new Dependency("needed", new SemVer.Range("^0.1.4"));
             config.Dependencies.Add(dep);
             config.Dependencies.Add(otherDep);
             var depConfig = new Config() { Info = new PackageInfo("Cool Name", "id", new SemVer.Version("0.1.0")) };
-            var innerDep = new Dependency("needed", new SemVer.Range("^0.1.0"), new Uri("http://random.com"));
+            var innerDep = new Dependency("needed", new SemVer.Range("^0.1.0"));
             depConfig.Dependencies.Add(innerDep);
             var innerDepConfig = new Config { Info = new PackageInfo("Needed by both", "needed", new SemVer.Version("0.0.4")) };
 
@@ -191,12 +190,12 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
         public void CollectDependenciesDoNotMatchRangeExistingNested()
         {
             var config = new Config() { Info = new PackageInfo("MyMod", "asdf", new SemVer.Version("0.1.0")) };
-            var dep = new Dependency("id", new SemVer.Range("^0.1.0"), new Uri("http://someLocation.com"));
-            var otherDep = new Dependency("needed", new SemVer.Range("^0.2.4"), new Uri("http://random.com"));
+            var dep = new Dependency("id", new SemVer.Range("^0.1.0"));
+            var otherDep = new Dependency("needed", new SemVer.Range("^0.2.4"));
             config.Dependencies.Add(dep);
             config.Dependencies.Add(otherDep);
             var depConfig = new Config() { Info = new PackageInfo("Cool Name", "id", new SemVer.Version("0.1.0")) };
-            var innerDep = new Dependency("needed", new SemVer.Range("^0.1.0"), new Uri("http://random.com"));
+            var innerDep = new Dependency("needed", new SemVer.Range("^0.1.0"));
             depConfig.Dependencies.Add(innerDep);
             var innerDepConfig = new Config { Info = new PackageInfo("Needed by both", "needed", new SemVer.Version("0.1.4")) };
 

@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace QuestPackageManager
 {
-    public interface IUriHandler
+    public interface IDependencyResolver
     {
         public Config? GetConfig(Dependency dependency);
 

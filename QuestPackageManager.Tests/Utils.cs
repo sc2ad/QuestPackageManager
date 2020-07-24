@@ -25,9 +25,9 @@ namespace QuestPackageManager.Tests
             return mock;
         }
 
-        internal static Mock<IUriHandler> GetUriHandler(Dictionary<Dependency, Config> map)
+        internal static Mock<IDependencyResolver> GetUriHandler(Dictionary<Dependency, Config> map)
         {
-            var mock = new Mock<IUriHandler>();
+            var mock = new Mock<IDependencyResolver>();
             mock.Setup(m => m.GetConfig(It.IsAny<Dependency>())).Returns<Dependency>(d => map[d]);
             mock.Setup(m => m.ResolveDependency(It.IsAny<Config>(), It.IsAny<Dependency>()));
             return mock;

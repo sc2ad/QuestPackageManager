@@ -11,13 +11,13 @@ using System.Threading.Tasks;
 
 namespace QPM
 {
-    internal class RemoteUriResolver : IUriHandler
+    internal class RemoteQPMDependencyResolver : IDependencyResolver
     {
-        private readonly LocalConfigProvider configReader;
+        private readonly IConfigProvider configReader;
         private readonly WebClient client;
         private readonly Dictionary<Dependency, Config> cached = new Dictionary<Dependency, Config>();
 
-        public RemoteUriResolver(LocalConfigProvider configReader)
+        public RemoteQPMDependencyResolver(IConfigProvider configReader)
         {
             this.configReader = configReader;
             client = new WebClient();

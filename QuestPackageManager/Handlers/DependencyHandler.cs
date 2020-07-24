@@ -26,7 +26,7 @@ namespace QuestPackageManager
             this.configProvider = configProvider;
         }
 
-        public void AddDependency(string id, SemVer.Range range, Uri url) => AddDependency(new Dependency(id, range, url));
+        public void AddDependency(string id, SemVer.Range range) => AddDependency(new Dependency(id, range));
 
         public void AddDependency(Dependency dep)
         {
@@ -50,7 +50,6 @@ namespace QuestPackageManager
             if (existing != null)
             {
                 existing.VersionRange = (dep ?? throw new ArgumentNullException(Resources.Dependency)).VersionRange;
-                existing.Url = dep.Url;
                 existing.AdditionalData.Clear();
                 foreach (var p in dep.AdditionalData)
                     existing.AdditionalData.Add(p.Key, p.Value);

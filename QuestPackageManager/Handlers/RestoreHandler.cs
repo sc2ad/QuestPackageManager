@@ -13,13 +13,13 @@ namespace QuestPackageManager
     public class RestoreHandler
     {
         private readonly IConfigProvider configProvider;
-        private readonly IUriHandler uriHandler;
+        private readonly IDependencyResolver uriHandler;
 
         public event Action<RestoreHandler, List<Dependency>>? OnDependenciesCollected;
 
         public event Action<RestoreHandler, List<Dependency>>? OnRestore;
 
-        public RestoreHandler(IConfigProvider configProvider, IUriHandler uriHandler)
+        public RestoreHandler(IConfigProvider configProvider, IDependencyResolver uriHandler)
         {
             this.configProvider = configProvider;
             this.uriHandler = uriHandler;
@@ -35,29 +35,29 @@ namespace QuestPackageManager
             if (d.VersionRange is null)
                 throw new ArgumentException($"Dependency: {d.Id} {nameof(d.VersionRange)} is null!");
             if (thisId.Equals(d.Id, StringComparison.OrdinalIgnoreCase))
-                throw new DependencyException($"Recursive dependency! Tried to get dependency: {d.Id} at: {d.Url}, but {thisId} matches {d.Id}!");
+                throw new DependencyException($"Recursive dependency! Tried to get dependency: {d.Id}, but {thisId} matches {d.Id}!");
             // We want to convert our uri into a config file
             var depConfig = uriHandler.GetConfig(d);
             if (depConfig is null)
-                throw new ConfigException($"Could not find config for: {d.Id} at: {d.Url}");
+                throw new ConfigException($"Could not find config for: {d.Id}");
             // Then we want to check to ensure that the config file we have gotten is within our version
             if (depConfig.Info is null)
-                throw new ConfigException($"Config is of an invalid format for: {d.Id} at: {d.Url} - No info!");
+                throw new ConfigException($"Config is of an invalid format for: {d.Id} - No info!");
             if (string.IsNullOrEmpty(depConfig.Info.Id))
-                throw new ConfigException($"Config is of an invalid format for: {d.Id} at: {d.Url} - No Id!");
+                throw new ConfigException($"Config is of an invalid format for: {d.Id} - No Id!");
             // Check to make sure the config's version matches our dependency's version
             if (!depConfig.Info.Id.Equals(d.Id, StringComparison.OrdinalIgnoreCase))
                 throw new ConfigException($"Dependency and config have different ids! {d.Id} != {depConfig.Info.Id}!");
             if (depConfig.Info.Version is null)
-                throw new ConfigException($"Config is of an invalid format for: {d.Id} at: {d.Url} - No Version!");
+                throw new ConfigException($"Config is of an invalid format for: {d.Id} - No Version!");
             // If it isn't, we fail to match our dependencies, exit out.
             if (!d.VersionRange.IsSatisfied(depConfig.Info.Version))
-                throw new DependencyException($"Dependency unmet! Want: {d.VersionRange} got: {depConfig.Info.Version} for: {d.Id} at: {d.Url}");
+                throw new DependencyException($"Dependency unmet! Want: {d.VersionRange} got: {depConfig.Info.Version} for: {d.Id}");
             // Otherwise, we iterate over all of the config's dependencies
             foreach (var innerD in depConfig.Dependencies)
             {
                 if (innerD.Id is null)
-                    throw new ConfigException($"Config id: {depConfig.Info.Id} at: {d.Url} has dependency with null id!");
+                    throw new ConfigException($"Config id: {depConfig.Info.Id} has dependency with null id!");
                 var existing = myDependencies.FirstOrDefault(dep => innerD.Id.Equals(dep.Id, StringComparison.OrdinalIgnoreCase));
                 if (existing is null)
                 {

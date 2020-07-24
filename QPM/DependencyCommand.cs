@@ -20,10 +20,6 @@ namespace QPM
             [Required]
             public string Id { get; }
 
-            [Argument(1, "url", Description = "Url of the dependency")]
-            [Required]
-            public string Url { get; }
-
             [Option("-v|--version", CommandOptionType.SingleValue, Description = "Version range to use for the dependency. Defaults to \"*\"")]
             public string Version { get; }
 
@@ -34,15 +30,10 @@ namespace QPM
             {
                 if (string.IsNullOrEmpty(Id))
                     throw new ArgumentException("Id for 'dependency add' cannot be null or empty!");
-                if (string.IsNullOrEmpty(Url))
-                    throw new ArgumentException("Url for 'dependency add' cannot be null or empty!");
                 // Create range for dependency
                 // Will throw on failure
                 var range = new SemVer.Range(string.IsNullOrEmpty(Version) ? "*" : Version);
-                // Create uri for dependency
-                // Will throw on failure
-                var url = new Uri(Url);
-                var dep = new Dependency(Id, range, url);
+                var dep = new Dependency(Id, range);
                 // Populate AdditionalInfo
                 if (AdditionalInfo != null)
                 {
@@ -53,7 +44,7 @@ namespace QPM
                 }
                 // Call dependency handler add
                 Program.DependencyHandler.AddDependency(dep);
-                Console.WriteLine($"Added dependency: {Id} at: {Url} ok!");
+                Console.WriteLine($"Added dependency: {Id} ok!");
             }
         }
 

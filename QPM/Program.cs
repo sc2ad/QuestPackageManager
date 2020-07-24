@@ -18,16 +18,17 @@ namespace QPM
         internal static RestoreHandler RestoreHandler { get; private set; }
 
         private static IConfigProvider configProvider;
-        private static IUriHandler uriHandler;
+        private static IDependencyResolver uriHandler;
 
         public static int Main(string[] args)
         {
             // Create config provider
             configProvider = new LocalConfigProvider(Environment.CurrentDirectory, PackageFileName, LocalFileName);
+            uriHandler = new RemoteQPMDependencyResolver(configProvider as LocalConfigProvider);
             // Create handlers
             PackageHandler = new PackageHandler(configProvider);
             DependencyHandler = new DependencyHandler(configProvider);
-            //RestoreHandler = new RestoreHandler(configProvider, uriHandler);
+            RestoreHandler = new RestoreHandler(configProvider, uriHandler);
             // Register callbacks
 
             int exit = -1;

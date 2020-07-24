@@ -13,16 +13,13 @@ namespace QuestPackageManager.Data
         [JsonConverter(typeof(SemVerRangeConverter))]
         public SemVer.Range? VersionRange { get; set; }
 
-        public Uri? Url { get; set; }
-
         [JsonInclude]
         public Dictionary<string, string?> AdditionalData { get; private set; } = new Dictionary<string, string?>();
 
-        public Dependency(string id, SemVer.Range versionRange, Uri url)
+        public Dependency(string id, SemVer.Range versionRange)
         {
             Id = id;
             VersionRange = versionRange;
-            Url = url;
         }
 
         [JsonConstructor]
