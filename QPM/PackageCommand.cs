@@ -30,6 +30,9 @@ namespace QPM
             [Option("-u|--url", CommandOptionType.SingleValue, Description = "Url of the package to create, defaults to empty")]
             public string Url { get; }
 
+            [Argument(2, "additional info", Description = "Additional information for the package (as key, value pairs)")]
+            public string[] AdditionalInfo { get; }
+
             // This will throw if it fails to do anything (ex: on invalid name and whatnot)
             // We may want to make this a bit clearer
             private void OnExecute()
@@ -42,6 +45,14 @@ namespace QPM
                 if (!string.IsNullOrEmpty(Url))
                     // Throws on failure to create valid Uri
                     info.Url = new Uri(Url);
+                // Populate AdditionalInfo
+                if (AdditionalInfo != null)
+                {
+                    if (AdditionalInfo.Length % 2 != 0 || AdditionalInfo.Length < 2)
+                        throw new ArgumentException("AdditionalInfo for 'package create' must be of an even length >= 2! (key, value pairs)");
+                    for (int i = 0; i < AdditionalInfo.Length; i += 2)
+                        info.AdditionalData.Add(AdditionalInfo[i], AdditionalInfo[i + 1]);
+                }
                 // Call package handler create
                 Program.PackageHandler.CreatePackage(info);
                 Console.WriteLine($"Created package: {Id} name: {Name} ok!");
@@ -119,6 +130,8 @@ namespace QPM
                     Console.WriteLine($"Changed name of package to: {Name} ok!");
                 }
             }
+
+            // TODO: Add qpm package edit extra (add, remove)
 
             private void OnExecute(CommandLineApplication app) => app.ShowHelp();
         }

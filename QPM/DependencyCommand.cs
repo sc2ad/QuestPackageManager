@@ -27,6 +27,9 @@ namespace QPM
             [Option("-v|--version", CommandOptionType.SingleValue, Description = "Version range to use for the dependency. Defaults to \"*\"")]
             public string Version { get; }
 
+            [Argument(2, "additional info", Description = "Additional information for the dependency (as key, value pairs)")]
+            public string[] AdditionalInfo { get; }
+
             private void OnExecute()
             {
                 if (string.IsNullOrEmpty(Id))
@@ -39,8 +42,17 @@ namespace QPM
                 // Create uri for dependency
                 // Will throw on failure
                 var url = new Uri(Url);
+                var dep = new Dependency(Id, range, url);
+                // Populate AdditionalInfo
+                if (AdditionalInfo != null)
+                {
+                    if (AdditionalInfo.Length % 2 != 0 || AdditionalInfo.Length < 2)
+                        throw new ArgumentException("AdditionalInfo for 'dependency add' must be of an even length >= 2! (key, value pairs)");
+                    for (int i = 0; i < AdditionalInfo.Length; i += 2)
+                        dep.AdditionalData.Add(AdditionalInfo[i], AdditionalInfo[i + 1]);
+                }
                 // Call dependency handler add
-                Program.DependencyHandler.AddDependency(Id, range, url);
+                Program.DependencyHandler.AddDependency(dep);
                 Console.WriteLine($"Added dependency: {Id} at: {Url} ok!");
             }
         }
