@@ -177,6 +177,12 @@ namespace QPM
             {
                 shared = "./" + cfg.SharedDir;
                 depDir = "./" + cfg.DependenciesDir;
+                var actualShared = Path.Combine(Environment.CurrentDirectory, cfg.SharedDir);
+                var actualDeps = Path.Combine(Environment.CurrentDirectory, cfg.DependenciesDir);
+                if (!Directory.Exists(actualShared))
+                    Directory.CreateDirectory(actualShared);
+                if (!Directory.Exists(actualDeps))
+                    Directory.CreateDirectory(actualDeps);
             }
             var props = propertiesProvider.GetProperties();
             if (props != null)

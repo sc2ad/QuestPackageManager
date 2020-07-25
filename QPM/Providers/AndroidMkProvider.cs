@@ -48,10 +48,54 @@ namespace QPM.Providers
                     ':' => Concat.Set,
                     _ => Concat.None,
                 };
-                return line.Substring(ind + 1);
+                return line.Substring(ind + 1).TrimStart();
             }
             type = Concat.None;
             return null;
+        }
+
+        private static IEnumerable<string> ParseLine(string line)
+        {
+            var lst = new List<string>();
+            string temp = string.Empty;
+            bool wildcard = false;
+            bool escapedParenth = false;
+            bool escapedSingle = false;
+            bool escapedDouble = false;
+            bool escapeNext = false;
+            foreach (var c in line)
+            {
+                if (escapeNext)
+                {
+                    escapeNext = false;
+                    temp += c;
+                    continue;
+                }
+                if (wildcard && c == '(')
+                    escapedParenth = true;
+                wildcard = false;
+
+                if (c == '$')
+                    wildcard = true;
+                else if (c == '\\')
+                    escapeNext = true;
+                else if (c == '\'')
+                    escapedSingle = !escapedSingle;
+                else if (c == '\"')
+                    escapedDouble = !escapedDouble;
+                else if (c == ')')
+                    escapedParenth = false;
+                else if (c == ' ' && !escapedSingle && !escapedDouble && !escapedParenth)
+                {
+                    lst.Add(temp);
+                    temp = string.Empty;
+                    continue;
+                }
+                temp += c;
+            }
+            // Always add at least one
+            lst.Add(temp);
+            return lst;
         }
 
         public AndroidMk GetFile()
@@ -69,17 +113,29 @@ namespace QPM.Providers
                         module.PrefixLines.Add(line);
                     else
                     {
+                        // Check if mod end
+                        if (line.StartsWith("include $("))
+                        {
+                            module.BuildLine = line;
+                            mk.Modules.Add(module);
+                            // Exit module with build statement
+                            inModule = false;
+                            // Create new module to populate prefix for
+                            module = new Module();
+                            continue;
+                        }
                         // Parse line
                         var parsed = BreakString(line, out var type);
                         if (parsed is null)
-                            return null;
+                            // If line can't be parsed, skip
+                            continue;
                         if (line.StartsWith("LOCAL_MODULE"))
                             module.Id = parsed;
                         else if (line.StartsWith("LOCAL_SRC_FILES"))
                         {
                             if (type == Concat.Set)
                                 module.Src.Clear();
-                            module.Src.AddRange(parsed.Split(' '));
+                            module.Src.AddRange(ParseLine(parsed));
                         }
                         else if (line.StartsWith("LOCAL_EXPORT_C_INCLUDES"))
                         {
@@ -91,51 +147,43 @@ namespace QPM.Providers
                         {
                             if (type == Concat.Set)
                                 module.SharedLibs.Clear();
-                            module.SharedLibs.AddRange(parsed.Split(' '));
+                            module.SharedLibs.AddRange(ParseLine(parsed));
                         }
                         else if (line.StartsWith("LOCAL_LDLIBS"))
                         {
                             if (type == Concat.Set)
                                 module.LdLibs.Clear();
-                            module.LdLibs.AddRange(parsed.Split(' '));
+                            module.LdLibs.AddRange(ParseLine(parsed));
                         }
                         else if (line.StartsWith("LOCAL_CFLAGS"))
                         {
                             if (type == Concat.Set)
                                 module.CFlags.Clear();
-                            module.CFlags.AddRange(parsed.Split(' '));
+                            module.CFlags.AddRange(ParseLine(parsed));
                         }
                         else if (line.StartsWith("LOCAL_CPPFLAGS"))
                         {
                             if (type == Concat.Set)
                                 module.CppFlags.Clear();
-                            module.CppFlags.AddRange(parsed.Split(' '));
+                            module.CppFlags.AddRange(ParseLine(parsed));
                         }
                         else if (line.StartsWith("LOCAL_C_INCLUDES"))
                         {
                             if (type == Concat.Set)
                                 module.CIncludes.Clear();
-                            module.CIncludes.AddRange(parsed.Split(' '));
+                            module.CIncludes.AddRange(ParseLine(parsed));
                         }
                         else if (line.StartsWith("LOCAL_CPP_FEATURES"))
                         {
                             if (type == Concat.Set)
                                 module.CppFeatures.Clear();
-                            module.CppFeatures.AddRange(parsed.Split(' '));
+                            module.CppFeatures.AddRange(ParseLine(parsed));
                         }
                     }
                     if (line.StartsWith("include $(CLEAR_VARS)"))
                     {
                         // Enter module
                         inModule = true;
-                        module = new Module();
-                    }
-                    else if (line.StartsWith("include $("))
-                    {
-                        module.BuildLine = line;
-                        mk.Modules.Add(module);
-                        // Exit module with build statement
-                        inModule = false;
                     }
                 }
 
@@ -145,12 +193,14 @@ namespace QPM.Providers
             }
             catch
             {
-                return null;
+                throw;
             }
         }
 
         public void SerializeFile(AndroidMk mk)
         {
+            if (!File.Exists(path + ".backup"))
+                File.Copy(path, path + ".backup");
             var sb = new StringBuilder();
             foreach (var m in mk.Modules)
             {
@@ -161,9 +211,10 @@ namespace QPM.Providers
                     sb.AppendLine("LOCAL_EXPORT_C_INCLUDES := " + m.ExportIncludes);
                 if (m.Src.Any())
                     foreach (var src in m.Src)
-                        sb.AppendLine("LOCAL_SRC += " + src);
+                        sb.AppendLine("LOCAL_SRC_FILES += " + src);
                 if (m.SharedLibs.Any())
-                    sb.AppendLine("LOCAL_SHARED_LIBRARIES += " + string.Join(' ', m.SharedLibs));
+                    foreach (var lib in m.SharedLibs)
+                        sb.AppendLine("LOCAL_SHARED_LIBRARIES += " + lib);
                 if (m.LdLibs.Any())
                     sb.AppendLine("LOCAL_LDLIBS += " + string.Join(' ', m.LdLibs));
                 if (m.CFlags.Any())

@@ -2,7 +2,7 @@
   "profiles": {
     "QPM": {
       "commandName": "Project",
-      "commandLineArgs": "dependency add \"bshook\" \"https://github.com/sc2ad/beatsaber-hook\" -v \"^0.2.2\""
+      "commandLineArgs": "package create \"Test\" \"0.1.0\""
     }
   }
 }

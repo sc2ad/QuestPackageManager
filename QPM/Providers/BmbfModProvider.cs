@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -21,7 +22,11 @@ namespace QPM.Providers
         public void SerializeMod(BmbfMod mod)
         {
             // Throws
-            var data = JsonSerializer.Serialize(mod);
+            var data = JsonSerializer.Serialize(mod, new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+            });
             // Throws
             File.WriteAllText(path, data);
         }

@@ -63,7 +63,7 @@ namespace QPM.Data
             if (config is null)
                 return;
             var versionDef = config.Defines.FindIndex(d => d.StartsWith(VersionDefine));
-            var toAdd = IdDefine + $"=\"{version}\"";
+            var toAdd = VersionDefine + $"=\"{version}\"";
             if (versionDef != -1)
                 config.Defines[versionDef] = toAdd;
             else

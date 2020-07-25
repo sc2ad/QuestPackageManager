@@ -31,7 +31,12 @@ namespace QPM.Data
                 CFlags.Add(s);
         }
 
-        public void AddIncludePath(string includePath) => CFlags.Add("-I'" + includePath + "'");
+        public void AddIncludePath(string includePath)
+        {
+            var include = "-I'" + includePath + "'";
+            if (!CFlags.Contains(include))
+                CFlags.Add(include);
+        }
 
         public void RemoveSharedLibrary(string id) => SharedLibs.RemoveAll(l => l.Equals(id, StringComparison.OrdinalIgnoreCase));
     }

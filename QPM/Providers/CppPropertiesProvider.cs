@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
@@ -23,7 +24,11 @@ namespace QPM.Providers
         public void SerializeProperties(CppProperties props)
         {
             // Throws
-            var data = JsonSerializer.Serialize(props);
+            var data = JsonSerializer.Serialize(props, new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+            });
             // Throws
             File.WriteAllText(path, data);
         }

@@ -55,7 +55,7 @@ namespace QPM
                 }
                 // Call package handler create
                 Program.PackageHandler.CreatePackage(info);
-                Console.WriteLine($"Created package: {Id} name: {Name} ok!");
+                Console.WriteLine($"Created package: {Id} name: {info.Name} ok!");
                 Utils.WriteSuccess();
             }
         }
