@@ -12,5 +12,7 @@ namespace QuestPackageManager
         public Config? GetConfig(Dependency dependency);
 
         public void ResolveDependency(in Config myConfig, in Dependency dependency);
+
+        public void RemoveDependency(in Config myConfig, in Dependency dependency);
     }
 }

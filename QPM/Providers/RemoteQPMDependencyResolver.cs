@@ -75,15 +75,22 @@ namespace QPM
             var downloadFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), dependency.Id);
             var downloadLoc = downloadFolder + ".zip";
             // We would like to throw here on failure
+            if (File.Exists(downloadLoc))
+                File.Delete(downloadLoc);
             client.DownloadFile(url, downloadLoc);
             // We would like to throw here on failure
+            if (Directory.Exists(downloadFolder))
+                Directory.Delete(downloadFolder);
             ZipFile.ExtractToDirectory(downloadLoc, downloadFolder);
 
             // Use url provided in config to grab folders specified by config and place them under our own
             // If the shared folder doesn't exist, throw
             Directory.Move(Path.Combine(downloadFolder, config.SharedDir), Path.Combine(myConfig.DependenciesDir, config.Info.Id));
+            File.Delete(downloadLoc);
 
             OnDependencyResolved?.Invoke(myConfig, config);
         }
+
+        public void RemoveDependency(in Config myConfig, in Dependency dependency) => Directory.Delete(Path.Combine(myConfig.DependenciesDir, dependency.Id));
     }
 }

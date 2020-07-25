@@ -1,0 +1,38 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace QPM.Data
+{
+    public class Module
+    {
+        public List<string> PrefixLines { get; set; } = new List<string>();
+        public string Id { get; set; }
+        public List<string> Src { get; set; } = new List<string>();
+        public string ExportIncludes { get; set; }
+        public List<string> SharedLibs { get; set; } = new List<string>();
+        public List<string> LdLibs { get; set; } = new List<string>();
+        public List<string> CFlags { get; set; } = new List<string>();
+        public List<string> CppFlags { get; set; } = new List<string>();
+        public List<string> CIncludes { get; set; } = new List<string>();
+        public List<string> CppFeatures { get; set; } = new List<string>();
+        public string BuildLine { get; set; }
+
+        public void AddDefine(string id, string value)
+        {
+            // TODO: Support more types of -D
+            var idIndex = CFlags.FindIndex(c => c.StartsWith("-D" + id) || c.StartsWith("-D'" + id));
+            var s = $"-D{id}='\"{value}\"'";
+            if (idIndex != -1)
+                CFlags[idIndex] = s;
+            else
+                CFlags.Add(s);
+        }
+
+        public void AddIncludePath(string includePath) => CFlags.Add("-I'" + includePath + "'");
+
+        public void RemoveSharedLibrary(string id) => SharedLibs.RemoveAll(l => l.Equals(id, StringComparison.OrdinalIgnoreCase));
+    }
+}
