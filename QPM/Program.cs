@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 namespace QPM
 {
     [Command("qpm", Description = "Quest package manager")]
-    [Subcommand(typeof(PackageCommand), typeof(DependencyCommand), typeof(RestoreCommand)/*, typeof(PublishCommand) */)]
+    [Subcommand(typeof(PackageCommand), typeof(DependencyCommand), typeof(RestoreCommand), typeof(PublishCommand))]
     internal class Program
     {
         internal const string PackageFileName = "qpm.json";
@@ -125,7 +125,9 @@ namespace QPM
             }
             // TODO: Remove from bmbfmod.json
             var cfg = configProvider.GetConfig();
-            if (cfg != null)
+            var localConfig = configProvider.GetLocalConfig();
+            // If we have it in our met dependencies
+            if (cfg != null && localConfig != null && localConfig.IncludedDependencies.Find(d => dependency.Id.Equals(d.Id, StringComparison.OrdinalIgnoreCase)) != null)
                 resolver.RemoveDependency(cfg, dependency);
         }
 
