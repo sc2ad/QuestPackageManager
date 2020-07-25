@@ -10,6 +10,10 @@ namespace QPM
     [Command("publish", Description = "Publish package")]
     internal class PublishCommand
     {
-        private void OnExecute() => Program.PublishHandler.Publish();
+        private void OnExecute()
+        {
+            Program.PublishHandler.Publish();
+            Utils.WriteSuccess();
+        }
     }
 }

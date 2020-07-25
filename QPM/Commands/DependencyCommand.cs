@@ -45,6 +45,7 @@ namespace QPM
                 // Call dependency handler add
                 Program.DependencyHandler.AddDependency(dep);
                 Console.WriteLine($"Added dependency: {Id} ok!");
+                Utils.WriteSuccess();
             }
         }
 
@@ -63,8 +64,7 @@ namespace QPM
                 if (!Program.DependencyHandler.RemoveDependency(Id))
                     throw new InvalidOperationException($"Cannot remove id: {Id} because it is not a dependency!");
                 Console.WriteLine($"Removed dependency: {Id} ok!");
-                // NOTE that this does NOT remove it from our satisfied dependencies.
-                // It probably should.
+                Utils.WriteSuccess();
             }
         }
 

@@ -54,21 +54,12 @@ namespace QPM
 
             try
             {
-                int exit = CommandLineApplication.Execute<Program>(args);
-                if (exit == 0)
-                {
-                    Console.ForegroundColor = ConsoleColor.Green;
-                    Console.WriteLine("Success!");
-                    Console.ResetColor();
-                }
-                return exit;
+                return CommandLineApplication.Execute<Program>(args);
             }
             catch (Exception e)
             {
                 Console.WriteLine(e.Message);
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("Failed!");
-                Console.ResetColor();
+                Utils.WriteFail();
             }
             return -1;
         }

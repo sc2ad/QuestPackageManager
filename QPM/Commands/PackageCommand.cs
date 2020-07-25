@@ -56,6 +56,7 @@ namespace QPM
                 // Call package handler create
                 Program.PackageHandler.CreatePackage(info);
                 Console.WriteLine($"Created package: {Id} name: {Name} ok!");
+                Utils.WriteSuccess();
             }
         }
 
@@ -78,6 +79,7 @@ namespace QPM
                     // Call package handler change version
                     Program.PackageHandler.ChangeVersion(newVersion);
                     Console.WriteLine($"Changed version of package to: {newVersion} ok!");
+                    Utils.WriteSuccess();
                 }
             }
 
@@ -94,6 +96,7 @@ namespace QPM
                         throw new ArgumentException("Id for 'package edit id' cannot be null or empty!");
                     Program.PackageHandler.ChangeId(Id);
                     Console.WriteLine($"Changed id of package to: {Id} ok!");
+                    Utils.WriteSuccess();
                 }
             }
 
@@ -112,6 +115,7 @@ namespace QPM
                     // Call package handler change url
                     Program.PackageHandler.ChangeUrl(newUrl);
                     Console.WriteLine($"Changed url of package to: {newUrl} ok!");
+                    Utils.WriteSuccess();
                 }
             }
 
@@ -128,6 +132,7 @@ namespace QPM
                         throw new ArgumentException("Id for 'package edit name' cannot be null or empty!");
                     Program.PackageHandler.ChangeName(Name);
                     Console.WriteLine($"Changed name of package to: {Name} ok!");
+                    Utils.WriteSuccess();
                 }
             }
 
