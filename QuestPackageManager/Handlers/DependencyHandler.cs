@@ -84,6 +84,19 @@ namespace QuestPackageManager
                 configProvider.Commit();
                 // Perform additional modification
                 OnDependencyRemoved?.Invoke(this, matchingDep);
+                // Get local config to remove dependency from IncludedDependencies if it exists
+                // This happens only after OnDependencyRemoved occurrs, ensuring that throws will happen properly
+                var localConf = configProvider.GetLocalConfig();
+                if (localConf != null)
+                {
+                    var match = localConf.IncludedDependencies.FirstOrDefault(d => matchingId.Equals(d.Id, StringComparison.OrdinalIgnoreCase));
+                    if (match != null)
+                    {
+                        localConf.IncludedDependencies.Remove(match);
+                        // Commit local config after included dependencies are modified
+                        configProvider.Commit();
+                    }
+                }
             }
             return result;
         }

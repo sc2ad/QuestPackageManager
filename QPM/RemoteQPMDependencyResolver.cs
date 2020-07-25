@@ -13,17 +13,18 @@ namespace QPM
 {
     internal class RemoteQPMDependencyResolver : IDependencyResolver
     {
-        private readonly IConfigProvider configReader;
         private readonly WebClient client;
+        private readonly QPMApi api;
         private readonly Dictionary<Dependency, Config> cached = new Dictionary<Dependency, Config>();
 
-        public RemoteQPMDependencyResolver(IConfigProvider configReader)
+        public event Action<Config, Config> OnDependencyResolved;
+
+        public RemoteQPMDependencyResolver(QPMApi api)
         {
-            this.configReader = configReader;
             client = new WebClient();
+            this.api = api;
         }
 
-        private const string RawGithubUrl = "https://raw.githubusercontent.com";
         private const string DownloadGithubUrl = "https://github.com";
         private const string DefaultBranch = "master";
 
@@ -33,34 +34,17 @@ namespace QPM
         {
             if (cached.TryGetValue(dependency, out var conf))
                 return conf;
-            if (dependency.Url is null)
-                return null;
-            var url = dependency.Url;
-            if (IsGithubLink(dependency.Url))
-            {
-                // See if we have a branch in additionalData
-                if (!dependency.AdditionalData.TryGetValue("branchName", out var branchName))
-                    // Otherwise, use DefaultBranchName
-                    branchName = DefaultBranch;
-                // Create correct segments
-                var segs = dependency.Url.Segments.ToList();
-                segs.Add(branchName + "/");
-                segs.Add(Program.PackageFileName);
-                // Create raw link for specific file
-                url = new Uri(RawGithubUrl + string.Join("", segs));
-            }
-            // Download text from url
-            string data;
+            // Try to download dependency
             try
             {
-                data = client.DownloadString(url);
+                conf = api.GetLatestConfig(dependency);
             }
             catch (WebException)
             {
                 return null;
             }
+            // Download text from url
             // Read config from text
-            conf = configReader.From(data);
             cached.Add(dependency, conf);
             return conf;
         }
@@ -71,17 +55,17 @@ namespace QPM
                 config = GetConfig(dependency);
 
             var url = config.Info.Url;
-            if (config.Info.Url is null)
-                // Fallback to dependency url and additional info
-                url = dependency.Url;
 
             if (IsGithubLink(url))
             {
                 // If we have a github link, we need to create an archive download link
-                // branch is always determined from dependency AdditionalData
+                // branch is first determined from dependency AdditionalData
+                // TODO: Also add support/handling for tags, commits
                 if (!dependency.AdditionalData.TryGetValue("branchName", out var branchName))
-                    // Otherwise, use DefaultBranchName
-                    branchName = DefaultBranch;
+                    // Otherwise, check config
+                    if (!config.AdditionalData.TryGetValue("localBranchName", out branchName))
+                        // Otherwise, use DefaultBranchName
+                        branchName = DefaultBranch;
                 var segs = url.Segments.ToList();
                 segs.Add("archive/");
                 segs.Add(branchName + ".zip");
@@ -98,6 +82,8 @@ namespace QPM
             // Use url provided in config to grab folders specified by config and place them under our own
             // If the shared folder doesn't exist, throw
             Directory.Move(Path.Combine(downloadFolder, config.SharedDir), Path.Combine(myConfig.DependenciesDir, config.Info.Id));
+
+            OnDependencyResolved?.Invoke(myConfig, config);
         }
     }
 }

@@ -8,6 +8,8 @@ namespace QuestPackageManager.Data
 {
     public interface IConfigProvider
     {
+        string ToString(Config? config);
+
         Config? From(string data);
 
         LocalConfig? GetLocalConfig(bool createOnFail = false);

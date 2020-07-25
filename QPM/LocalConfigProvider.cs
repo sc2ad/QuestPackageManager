@@ -33,6 +33,18 @@ namespace QPM
             };
         }
 
+        public string ToString(Config config)
+        {
+            try
+            {
+                return JsonSerializer.Serialize(config, options);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
         public Config From(string data)
         {
             try
