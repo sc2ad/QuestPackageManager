@@ -16,6 +16,7 @@ namespace QPM
         internal static DependencyHandler DependencyHandler { get; private set; }
         internal static PackageHandler PackageHandler { get; private set; }
         internal static RestoreHandler RestoreHandler { get; private set; }
+        internal static PublishHandler PublishHandler { get; private set; }
 
         private static IConfigProvider configProvider;
         private static IDependencyResolver resolver;
@@ -31,6 +32,7 @@ namespace QPM
             PackageHandler = new PackageHandler(configProvider);
             DependencyHandler = new DependencyHandler(configProvider);
             RestoreHandler = new RestoreHandler(configProvider, resolver);
+            PublishHandler = new PublishHandler(configProvider, api);
             // Register callbacks
             PackageHandler.OnPackageCreated += PackageHandler_OnPackageCreated;
             PackageHandler.OnIdChanged += PackageHandler_OnIdChanged;
@@ -71,7 +73,7 @@ namespace QPM
             // It needs to use that new module in main build
         }
 
-        private static void DependencyHandler_OnDependencyRemoved(DependencyHandler arg1, Dependency arg2)
+        private static void DependencyHandler_OnDependencyRemoved(DependencyHandler handler, Dependency dependency)
         {
             // Handle deletion of the dependency in question
             // That would include removing it from the config.SharedDir, removing it from Android.mk, removing it from bmbfmod.json

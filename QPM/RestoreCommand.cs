@@ -10,9 +10,6 @@ namespace QPM
     [Command("restore", Description = "Restore and resolve all dependencies from the package")]
     internal class RestoreCommand
     {
-        private void OnExecute()
-        {
-            // Call restore handler restore
-        }
+        private void OnExecute() => Program.RestoreHandler.Restore();
     }
 }
