@@ -193,7 +193,7 @@ namespace QPM.Providers
             }
             catch
             {
-                throw;
+                return null;
             }
         }
 

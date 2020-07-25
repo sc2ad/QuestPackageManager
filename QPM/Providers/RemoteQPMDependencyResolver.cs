@@ -28,7 +28,7 @@ namespace QPM
         private const string DownloadGithubUrl = "https://github.com";
         private const string DefaultBranch = "master";
 
-        private bool IsGithubLink(Uri uri) => uri.Fragment.StartsWith("github");
+        private bool IsGithubLink(Uri uri) => uri.AbsoluteUri.StartsWith(DownloadGithubUrl);
 
         public Config GetConfig(Dependency dependency)
         {
@@ -63,34 +63,50 @@ namespace QPM
                 // TODO: Also add support/handling for tags, commits
                 if (!dependency.AdditionalData.TryGetValue("branchName", out var branchName))
                     // Otherwise, check config
-                    if (!config.AdditionalData.TryGetValue("localBranchName", out branchName))
+                    if (!config.AdditionalData.TryGetValue("branchName", out branchName))
                         // Otherwise, use DefaultBranchName
                         branchName = DefaultBranch;
                 var segs = url.Segments.ToList();
+                segs.Add("/");
                 segs.Add("archive/");
                 segs.Add(branchName + ".zip");
                 url = new Uri(DownloadGithubUrl + string.Join("", segs));
             }
             // Attempt to download the file as a zip
-            var downloadFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), dependency.Id);
+            var outter = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "QPM");
+            if (!Directory.Exists(outter))
+                Directory.CreateDirectory(outter);
+            var downloadFolder = Path.Combine(outter, dependency.Id);
             var downloadLoc = downloadFolder + ".zip";
             // We would like to throw here on failure
             if (File.Exists(downloadLoc))
                 File.Delete(downloadLoc);
+            Console.WriteLine($"Trying to download from: {url}");
             client.DownloadFile(url, downloadLoc);
             // We would like to throw here on failure
             if (Directory.Exists(downloadFolder))
-                Directory.Delete(downloadFolder);
-            ZipFile.ExtractToDirectory(downloadLoc, downloadFolder);
+                Utils.DeleteDirectory(downloadFolder);
+            ZipFile.ExtractToDirectory(downloadLoc, downloadFolder, true);
 
             // Use url provided in config to grab folders specified by config and place them under our own
             // If the shared folder doesn't exist, throw
-            Directory.Move(Path.Combine(downloadFolder, config.SharedDir), Path.Combine(myConfig.DependenciesDir, config.Info.Id));
+            var actualRoot = downloadFolder;
+            var dirs = Directory.GetDirectories(actualRoot);
+            while (dirs.Length == 1 && Directory.GetFiles(actualRoot).Length == 0)
+            {
+                // If we have only one folder and no files, chances are we have to go one level deeper
+                actualRoot = dirs[0];
+                dirs = Directory.GetDirectories(actualRoot);
+            }
+            var dst = Path.Combine(myConfig.DependenciesDir, config.Info.Id);
+            if (Directory.Exists(dst))
+                Utils.DeleteDirectory(dst);
+            Directory.Move(Path.Combine(actualRoot, config.SharedDir), dst);
             File.Delete(downloadLoc);
 
             OnDependencyResolved?.Invoke(myConfig, config);
         }
 
-        public void RemoveDependency(in Config myConfig, in Dependency dependency) => Directory.Delete(Path.Combine(myConfig.DependenciesDir, dependency.Id));
+        public void RemoveDependency(in Config myConfig, in Dependency dependency) => Directory.Delete(Path.Combine(myConfig.DependenciesDir, dependency.Id), true);
     }
 }

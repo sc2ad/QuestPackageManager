@@ -95,7 +95,6 @@ namespace QuestPackageManager
             var myDependencies = config.Dependencies.ToList();
             foreach (var d in config.Dependencies)
                 CollectDependencies(config.Info.Id, ref myDependencies, d);
-            config.Dependencies.Clear();
             // Call post dependency resolution code
             OnDependenciesCollected?.Invoke(this, myDependencies);
             return myDependencies;

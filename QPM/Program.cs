@@ -101,8 +101,18 @@ namespace QPM
                 };
                 var main = mk.Modules.LastOrDefault();
                 if (main != null)
-                    main.SharedLibs.Add(module.Id);
-                mk.Modules.Insert(0, module);
+                {
+                    if (main.SharedLibs.FirstOrDefault(s => module.Id.Equals(s, StringComparison.OrdinalIgnoreCase)) is null)
+                        main.SharedLibs.Add(module.Id);
+                }
+                var existing = mk.Modules.FindIndex(m => module.Id.Equals(m.Id, StringComparison.OrdinalIgnoreCase));
+                if (existing == -1)
+                    mk.Modules.Insert(mk.Modules.Count - 1, module);
+                else
+                {
+                    mk.Modules[existing].Src = module.Src;
+                    mk.Modules[existing].ExportIncludes = module.ExportIncludes;
+                }
                 androidMkProvider.SerializeFile(mk);
             }
         }
