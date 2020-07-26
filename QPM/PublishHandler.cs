@@ -1,4 +1,5 @@
-﻿using QuestPackageManager;
+﻿using QPM.Commands;
+using QuestPackageManager;
 using QuestPackageManager.Data;
 using System;
 using System.Collections.Generic;
@@ -44,8 +45,8 @@ namespace QPM
             // My config should have both a Url and a soUrl
             if (config.Info.Url is null)
                 throw new DependencyException("Config url does not exist!");
-            if (config.Info.AdditionalData.ContainsKey("soUrl") && config.Info.AdditionalData.TryGetValue("headersOnly", out var header) && bool.TryParse(header, out var headerBool) && headerBool)
-                throw new DependencyException("Config soUrl does not exist!");
+            if (!config.Info.AdditionalData.ContainsKey(SupportedPropertiesCommand.SoLink) && (!config.Info.AdditionalData.TryGetValue(SupportedPropertiesCommand.HeadersOnly, out var header) || !bool.TryParse(header, out var headerBool) || !headerBool))
+                throw new DependencyException($"Config {SupportedPropertiesCommand.SoLink} does not exist! Try using {SupportedPropertiesCommand.HeadersOnly} if you do not need a .so file. See 'properties-list' for more info");
 
             // Push it to the server
             api.Push(config);

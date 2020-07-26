@@ -1,4 +1,5 @@
 ﻿using McMaster.Extensions.CommandLineUtils;
+using QPM.Commands;
 using QPM.Data;
 using QPM.Providers;
 using QuestPackageManager;
@@ -13,7 +14,7 @@ using System.Threading.Tasks;
 namespace QPM
 {
     [Command("qpm", Description = "Quest package manager")]
-    [Subcommand(typeof(PackageCommand), typeof(DependencyCommand), typeof(RestoreCommand), typeof(PublishCommand))]
+    [Subcommand(typeof(PackageCommand), typeof(DependencyCommand), typeof(RestoreCommand), typeof(PublishCommand), typeof(SupportedPropertiesCommand))]
     internal class Program
     {
         internal const string PackageFileName = "qpm.json";
@@ -66,7 +67,7 @@ namespace QPM
 
         private static void Program_OnDependencyResolved(Config myConfig, Config config)
         {
-            if (config.Info.AdditionalData.TryGetValue("headersOnly", out var headerS) && bool.TryParse(headerS, out var header) && header)
+            if (config.Info.AdditionalData.TryGetValue(SupportedPropertiesCommand.HeadersOnly, out var headerS) && bool.TryParse(headerS, out var header) && header)
             {
                 // If this is headersOnly, don't try to get an soLink that doesn't exist.
                 // Instead, exit.
@@ -74,7 +75,7 @@ namespace QPM
             }
             // Handle obtaining .so file from external config
             // Grab the .so file link from AdditionalData and handle it
-            if (!config.Info.AdditionalData.TryGetValue("soLink", out var soLink))
+            if (!config.Info.AdditionalData.TryGetValue(SupportedPropertiesCommand.SoLink, out var soLink))
                 throw new DependencyException($"Dependency: {config.Info.Id} has no 'soLink' property! Cannot download so to link!");
 
             WebClient client = new WebClient();

@@ -1,4 +1,5 @@
-﻿using QPM.Providers;
+﻿using QPM.Commands;
+using QPM.Providers;
 using QuestPackageManager;
 using QuestPackageManager.Data;
 using System;
@@ -83,9 +84,9 @@ namespace QPM
                 // If we have a github link, we need to create an archive download link
                 // branch is first determined from dependency AdditionalData
                 // TODO: Also add support/handling for tags, commits
-                if (!dependency.AdditionalData.TryGetValue("branchName", out var branchName))
+                if (!dependency.AdditionalData.TryGetValue(SupportedPropertiesCommand.BranchName, out var branchName))
                     // Otherwise, check config
-                    if (!config.Info.AdditionalData.TryGetValue("branchName", out branchName))
+                    if (!config.Info.AdditionalData.TryGetValue(SupportedPropertiesCommand.BranchName, out branchName))
                         // Otherwise, use DefaultBranchName
                         branchName = DefaultBranch;
                 var segs = url.Segments.ToList();

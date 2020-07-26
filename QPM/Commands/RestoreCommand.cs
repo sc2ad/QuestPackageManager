@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace QPM
+namespace QPM.Commands
 {
     [Command("restore", Description = "Restore and resolve all dependencies from the package")]
     internal class RestoreCommand

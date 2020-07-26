@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace QPM
+namespace QPM.Commands
 {
     [Command("dependency", Description = "Dependency control")]
     [Subcommand(typeof(DependencyAdd), typeof(DependencyRemove))]

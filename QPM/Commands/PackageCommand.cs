@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace QPM
+namespace QPM.Commands
 {
     [Command("package", Description = "Package control")]
     [Subcommand(typeof(PackageCreate), typeof(PackageEdit))]
