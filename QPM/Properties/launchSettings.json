@@ -2,7 +2,7 @@
   "profiles": {
     "QPM": {
       "commandName": "Project",
-      "commandLineArgs": "package create \"Test\" \"0.1.0\""
+      "commandLineArgs": "package edit version \"0.1.0\""
     }
   }
 }

@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace QPM.Commands
@@ -23,8 +24,8 @@ namespace QPM.Commands
             [Option("-v|--version", CommandOptionType.SingleValue, Description = "Version range to use for the dependency. Defaults to \"*\"")]
             public string Version { get; }
 
-            [Argument(2, "additional info", Description = "Additional information for the dependency (as key, value pairs)")]
-            public string[] AdditionalInfo { get; }
+            [Argument(2, "additional info", Description = "Additional information for the dependency (as a valid json object)")]
+            public string AdditionalInfo { get; }
 
             private void OnExecute()
             {
@@ -37,10 +38,11 @@ namespace QPM.Commands
                 // Populate AdditionalInfo
                 if (AdditionalInfo != null)
                 {
-                    if (AdditionalInfo.Length % 2 != 0 || AdditionalInfo.Length < 2)
-                        throw new ArgumentException("AdditionalInfo for 'dependency add' must be of an even length >= 2! (key, value pairs)");
-                    for (int i = 0; i < AdditionalInfo.Length; i += 2)
-                        dep.AdditionalData.Add(AdditionalInfo[i], AdditionalInfo[i + 1]);
+                    using var doc = JsonDocument.Parse(AdditionalInfo);
+                    if (doc.RootElement.ValueKind != JsonValueKind.Object)
+                        throw new ArgumentException("AdditionalData must be a JSON object!");
+                    foreach (var p in doc.RootElement.EnumerateObject())
+                        dep.AdditionalData.Add(p.Name, p.Value);
                 }
                 // Call dependency handler add
                 Program.DependencyHandler.AddDependency(dep);

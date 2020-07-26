@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace QPM.Commands
@@ -30,8 +31,8 @@ namespace QPM.Commands
             [Option("-u|--url", CommandOptionType.SingleValue, Description = "Url of the package to create, defaults to empty")]
             public string Url { get; }
 
-            [Argument(2, "additional info", Description = "Additional information for the package (as key, value pairs)")]
-            public string[] AdditionalInfo { get; }
+            [Argument(2, "additional info", Description = "Additional information for the package (as a valid json object)")]
+            public string AdditionalInfo { get; }
 
             // This will throw if it fails to do anything (ex: on invalid name and whatnot)
             // We may want to make this a bit clearer
@@ -48,10 +49,13 @@ namespace QPM.Commands
                 // Populate AdditionalInfo
                 if (AdditionalInfo != null)
                 {
-                    if (AdditionalInfo.Length % 2 != 0 || AdditionalInfo.Length < 2)
-                        throw new ArgumentException("AdditionalInfo for 'package create' must be of an even length >= 2! (key, value pairs)");
-                    for (int i = 0; i < AdditionalInfo.Length; i += 2)
-                        info.AdditionalData.Add(AdditionalInfo[i], AdditionalInfo[i + 1]);
+                    // TODO: Figure out this
+                    Console.WriteLine(AdditionalInfo);
+                    using var doc = JsonDocument.Parse(AdditionalInfo);
+                    if (doc.RootElement.ValueKind != JsonValueKind.Object)
+                        throw new ArgumentException("AdditionalData must be a JSON object!");
+                    foreach (var p in doc.RootElement.EnumerateObject())
+                        info.AdditionalData.Add(p.Name, p.Value);
                 }
                 // Call package handler create
                 Program.PackageHandler.CreatePackage(info);

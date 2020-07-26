@@ -32,6 +32,9 @@ namespace QPM.Commands
         [Property("Specify the download link for a .so file", "package")]
         public const string SoLink = "soLink";
 
+        [Property("Specify any additional files to be downloaded", "package", "dependency", Type = "array[string]")]
+        public const string AdditionalFiles = "extraFiles";
+
         private const string Header = "Supported Additional Properties:";
 
         private void OnExecute()

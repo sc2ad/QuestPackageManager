@@ -209,7 +209,9 @@ namespace QPM.Providers
                 sb.AppendLine("LOCAL_MODULE := " + m.Id);
                 if (!string.IsNullOrEmpty(m.ExportIncludes))
                     sb.AppendLine("LOCAL_EXPORT_C_INCLUDES := " + m.ExportIncludes);
-                if (m.Src.Any())
+                if (m.Src.Count == 1)
+                    sb.AppendLine("LOCAL_SRC_FILES := " + m.Src.First());
+                else
                     foreach (var src in m.Src)
                         sb.AppendLine("LOCAL_SRC_FILES += " + src);
                 if (m.SharedLibs.Any())

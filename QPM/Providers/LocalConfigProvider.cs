@@ -84,6 +84,7 @@ namespace QPM.Providers
                 if (createOnFail)
                 {
                     localConfig = new LocalConfig();
+                    Console.WriteLine("Creating new local config at: " + localConfigPath);
                     // Commit the created config when we explicitly want to create on failure
                     Commit();
                 }
@@ -109,6 +110,7 @@ namespace QPM.Providers
                 if (createOnFail)
                 {
                     config = new Config();
+                    Console.WriteLine("Creating new config at: " + configPath);
                     // Commit the created config when we explicitly want to create on failure
                     Commit();
                 }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -40,6 +41,20 @@ namespace QPM
             }
         }
 
+        public static void CopyDirectory(string source, string dst, bool recurse = true)
+        {
+            DirectoryInfo dir = new DirectoryInfo(source);
+            if (!Directory.Exists(dst))
+                Directory.CreateDirectory(dst);
+
+            foreach (var f in dir.GetFiles())
+                f.CopyTo(Path.Combine(dst, f.Name));
+
+            if (recurse)
+                foreach (var d in dir.GetDirectories())
+                    CopyDirectory(d.FullName, Path.Combine(dst, d.Name), recurse);
+        }
+
         public static string GetSubdir(string path)
         {
             var actualRoot = path;
@@ -51,6 +66,14 @@ namespace QPM
                 dirs = Directory.GetDirectories(actualRoot);
             }
             return actualRoot;
+        }
+
+        public static string GetTempDir()
+        {
+            var outter = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), Assembly.GetExecutingAssembly().GetName().Name);
+            if (!Directory.Exists(outter))
+                Directory.CreateDirectory(outter);
+            return outter;
         }
     }
 }

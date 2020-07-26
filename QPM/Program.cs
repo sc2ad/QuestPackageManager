@@ -67,7 +67,7 @@ namespace QPM
 
         private static void Program_OnDependencyResolved(Config myConfig, Config config)
         {
-            if (config.Info.AdditionalData.TryGetValue(SupportedPropertiesCommand.HeadersOnly, out var headerS) && bool.TryParse(headerS, out var header) && header)
+            if (config.Info.AdditionalData.TryGetValue(SupportedPropertiesCommand.HeadersOnly, out var headerE) && headerE.GetBoolean())
             {
                 // If this is headersOnly, don't try to get an soLink that doesn't exist.
                 // Instead, exit.
@@ -75,15 +75,27 @@ namespace QPM
             }
             // Handle obtaining .so file from external config
             // Grab the .so file link from AdditionalData and handle it
-            if (!config.Info.AdditionalData.TryGetValue(SupportedPropertiesCommand.SoLink, out var soLink))
+            if (!config.Info.AdditionalData.TryGetValue(SupportedPropertiesCommand.SoLink, out var soLinkE))
                 throw new DependencyException($"Dependency: {config.Info.Id} has no 'soLink' property! Cannot download so to link!");
+            var soLink = soLinkE.GetString();
 
             WebClient client = new WebClient();
-            Console.WriteLine($"Downloading so from: {soLink}");
-            var fileLoc = Path.Combine(myConfig.DependenciesDir, (config.Info.Id + "_" + config.Info.Version.ToString()).Replace('.', '_') + ".so");
+            var soName = (config.Info.Id + "_" + config.Info.Version.ToString()).Replace('.', '_') + ".so";
+            var tempLoc = Path.Combine(Utils.GetTempDir(), soName);
+            var fileLoc = Path.Combine(myConfig.DependenciesDir, soName);
             if (File.Exists(fileLoc))
-                File.Delete(fileLoc);
-            client.DownloadFile(soLink, fileLoc);
+                // If we have a file here already, we can simply return
+                return;
+            if (File.Exists(tempLoc))
+                // Copy the temp file to our current, then make sure we setup everything
+                File.Copy(tempLoc, fileLoc);
+            else
+            {
+                // We have to download
+                Console.WriteLine($"Downloading so from: {soLink}");
+                client.DownloadFile(soLink, tempLoc);
+                File.Copy(tempLoc, fileLoc);
+            }
             // Perform modifications to the Android.mk and c_cpp_properties.json as necessary (I don't think c_cpp_properties.json should change, includePath is constant)
             // But Android.mk needs some things changed:
             // It needs a new module
@@ -102,9 +114,9 @@ namespace QPM
                     Id = config.Info.Id,
                     Src = new List<string>
                     {
-                        "./" + fileLoc
+                        fileLoc.Replace('\\', '/')
                     },
-                    ExportIncludes = Path.Combine(myConfig.DependenciesDir, config.Info.Id),
+                    ExportIncludes = Path.Combine(myConfig.DependenciesDir, config.Info.Id).Replace('\\', '/'),
                     BuildLine = "include $(PREBUILT_SHARED_LIBRARY)"
                 };
                 var main = mk.Modules.LastOrDefault();
@@ -195,8 +207,8 @@ namespace QPM
             string depDir = null;
             if (cfg != null)
             {
-                shared = "./" + cfg.SharedDir;
-                depDir = "./" + cfg.DependenciesDir;
+                shared = cfg.SharedDir;
+                depDir = cfg.DependenciesDir;
                 var actualShared = Path.Combine(Environment.CurrentDirectory, cfg.SharedDir);
                 var actualDeps = Path.Combine(Environment.CurrentDirectory, cfg.DependenciesDir);
                 if (!Directory.Exists(actualShared))
@@ -211,8 +223,8 @@ namespace QPM
                 props.UpdateId(info.Id);
                 if (cfg != null)
                 {
-                    props.AddIncludePath(shared);
-                    props.AddIncludePath(depDir);
+                    props.AddIncludePath("${workspaceFolder}/" + shared);
+                    props.AddIncludePath("${workspaceFolder}/" + depDir);
                 }
                 propertiesProvider.SerializeProperties(props);
             }
@@ -234,8 +246,8 @@ namespace QPM
                     // Also add includePath for myConfig
                     if (cfg != null)
                     {
-                        module.AddIncludePath(shared);
-                        module.AddIncludePath(depDir);
+                        module.AddIncludePath("./" + shared);
+                        module.AddIncludePath("./" + depDir);
                     }
                     androidMkProvider.SerializeFile(mk);
                 }

@@ -14,7 +14,7 @@ namespace QuestPackageManager.Data
         public SemVer.Range? VersionRange { get; set; }
 
         [JsonInclude]
-        public Dictionary<string, string?> AdditionalData { get; private set; } = new Dictionary<string, string?>();
+        public Dictionary<string, JsonElement> AdditionalData { get; private set; } = new Dictionary<string, JsonElement>();
 
         public Dependency(string id, SemVer.Range versionRange)
         {

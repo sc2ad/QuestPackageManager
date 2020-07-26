@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace QuestPackageManager.Data
@@ -15,7 +16,7 @@ namespace QuestPackageManager.Data
         public Uri? Url { get; set; }
 
         [JsonInclude]
-        public Dictionary<string, string?> AdditionalData { get; private set; } = new Dictionary<string, string?>();
+        public Dictionary<string, JsonElement> AdditionalData { get; private set; } = new Dictionary<string, JsonElement>();
 
         public PackageInfo(string name, string id, SemVer.Version version)
         {
