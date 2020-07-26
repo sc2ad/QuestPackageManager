@@ -34,7 +34,7 @@ jobs:
       - name: Artifact Upload win-x64
         uses: actions/upload-artifact@v2
         with:
-          name: QPM-win-x64
+          name: QPM-win-x64.exe
           path: QPM/bin/Release/net5.0/win-x64/publish/QPM.exe
   checks:
 
