@@ -39,5 +39,18 @@ namespace QPM
                 Directory.Delete(path, true);
             }
         }
+
+        public static string GetSubdir(string path)
+        {
+            var actualRoot = path;
+            var dirs = Directory.GetDirectories(actualRoot);
+            while (dirs.Length == 1 && Directory.GetFiles(actualRoot).Length == 0)
+            {
+                // If we have only one folder and no files, chances are we have to go one level deeper
+                actualRoot = dirs[0];
+                dirs = Directory.GetDirectories(actualRoot);
+            }
+            return actualRoot;
+        }
     }
 }

@@ -1,4 +1,5 @@
-﻿using QuestPackageManager;
+﻿using QPM.Providers;
+using QuestPackageManager;
 using QuestPackageManager.Data;
 using System;
 using System.Collections.Generic;
@@ -49,6 +50,27 @@ namespace QPM
             return conf;
         }
 
+        private void DownloadDependency(string downloadFolder, Uri url, in Config myConfig, in Config config, string actualFolder)
+        {
+            // We would like to throw here on failure
+            var downloadLoc = downloadFolder + ".zip";
+            Console.WriteLine($"Trying to download from: {url}");
+            client.DownloadFile(url, downloadLoc);
+            // We would like to throw here on failure
+            if (Directory.Exists(downloadFolder))
+                Utils.DeleteDirectory(downloadFolder);
+            ZipFile.ExtractToDirectory(downloadLoc, downloadFolder, true);
+
+            // Use url provided in config to grab folders specified by config and place them under our own
+            // If the shared folder doesn't exist, throw
+
+            var dst = Path.Combine(myConfig.DependenciesDir, config.Info.Id);
+            if (Directory.Exists(dst))
+                Utils.DeleteDirectory(dst);
+            Directory.Move(Path.Combine(actualFolder, config.SharedDir), dst);
+            File.Delete(downloadLoc);
+        }
+
         public void ResolveDependency(in Config myConfig, in Dependency dependency)
         {
             if (!cached.TryGetValue(dependency, out var config))
@@ -63,7 +85,7 @@ namespace QPM
                 // TODO: Also add support/handling for tags, commits
                 if (!dependency.AdditionalData.TryGetValue("branchName", out var branchName))
                     // Otherwise, check config
-                    if (!config.AdditionalData.TryGetValue("branchName", out branchName))
+                    if (!config.Info.AdditionalData.TryGetValue("branchName", out branchName))
                         // Otherwise, use DefaultBranchName
                         branchName = DefaultBranch;
                 var segs = url.Segments.ToList();
@@ -77,33 +99,23 @@ namespace QPM
             if (!Directory.Exists(outter))
                 Directory.CreateDirectory(outter);
             var downloadFolder = Path.Combine(outter, dependency.Id);
-            var downloadLoc = downloadFolder + ".zip";
-            // We would like to throw here on failure
-            if (File.Exists(downloadLoc))
-                File.Delete(downloadLoc);
-            Console.WriteLine($"Trying to download from: {url}");
-            client.DownloadFile(url, downloadLoc);
-            // We would like to throw here on failure
+            var dirs = Utils.GetSubdir(downloadFolder);
             if (Directory.Exists(downloadFolder))
-                Utils.DeleteDirectory(downloadFolder);
-            ZipFile.ExtractToDirectory(downloadLoc, downloadFolder, true);
-
-            // Use url provided in config to grab folders specified by config and place them under our own
-            // If the shared folder doesn't exist, throw
-            var actualRoot = downloadFolder;
-            var dirs = Directory.GetDirectories(actualRoot);
-            while (dirs.Length == 1 && Directory.GetFiles(actualRoot).Length == 0)
             {
-                // If we have only one folder and no files, chances are we have to go one level deeper
-                actualRoot = dirs[0];
-                dirs = Directory.GetDirectories(actualRoot);
+                // If the folder already exists, check to see if the config matches. If it does, we don't need to do anything.
+                var configProvider = new LocalConfigProvider(dirs, Program.PackageFileName, Program.LocalFileName);
+                var localDepConfig = configProvider.GetConfig();
+                if (localDepConfig is null || localDepConfig.Info is null || config.Info.Version != localDepConfig.Info.Version)
+                {
+                    Utils.DeleteDirectory(downloadFolder);
+                    DownloadDependency(downloadFolder, url, myConfig, config, dirs);
+                }
+                else
+                    // Found dependency, no need to redownload!
+                    return;
             }
-            var dst = Path.Combine(myConfig.DependenciesDir, config.Info.Id);
-            if (Directory.Exists(dst))
-                Utils.DeleteDirectory(dst);
-            Directory.Move(Path.Combine(actualRoot, config.SharedDir), dst);
-            File.Delete(downloadLoc);
-
+            else
+                DownloadDependency(downloadFolder, url, myConfig, config, dirs);
             OnDependencyResolved?.Invoke(myConfig, config);
         }
 

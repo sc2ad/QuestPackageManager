@@ -66,12 +66,19 @@ namespace QPM
 
         private static void Program_OnDependencyResolved(Config myConfig, Config config)
         {
+            if (config.Info.AdditionalData.TryGetValue("headersOnly", out var headerS) && bool.TryParse(headerS, out var header) && header)
+            {
+                // If this is headersOnly, don't try to get an soLink that doesn't exist.
+                // Instead, exit.
+                return;
+            }
             // Handle obtaining .so file from external config
             // Grab the .so file link from AdditionalData and handle it
-            if (!config.AdditionalData.TryGetValue("soLink", out var soLink))
-                throw new DependencyException("Dependency: {config.Info.Id} has no 'soLink' property! Cannot download so to link!");
+            if (!config.Info.AdditionalData.TryGetValue("soLink", out var soLink))
+                throw new DependencyException($"Dependency: {config.Info.Id} has no 'soLink' property! Cannot download so to link!");
 
             WebClient client = new WebClient();
+            Console.WriteLine($"Downloading so from: {soLink}");
             var fileLoc = Path.Combine(myConfig.DependenciesDir, (config.Info.Id + "_" + config.Info.Version.ToString()).Replace('.', '_') + ".so");
             if (File.Exists(fileLoc))
                 File.Delete(fileLoc);

@@ -44,7 +44,7 @@ namespace QPM
             // My config should have both a Url and a soUrl
             if (config.Info.Url is null)
                 throw new DependencyException("Config url does not exist!");
-            if (config.Info.AdditionalData.ContainsKey("soUrl"))
+            if (config.Info.AdditionalData.ContainsKey("soUrl") && config.Info.AdditionalData.TryGetValue("headersOnly", out var header) && bool.TryParse(header, out var headerBool) && headerBool)
                 throw new DependencyException("Config soUrl does not exist!");
 
             // Push it to the server
