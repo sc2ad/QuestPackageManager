@@ -30,12 +30,12 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: QPM-ubuntu-x64
-          path: QPM/bin/ubuntu-x64/publish/QPM
+          path: QPM/bin/Release/net5.0/ubuntu-x64/publish/QPM
       - name: Artifact Upload win-x64
         uses: actions/upload-artifact@v2
         with:
           name: QPM-win-x64
-          path: QPM/bin/win-x64/publish/QPM.exe
+          path: QPM/bin/Release/net5.0/win-x64/publish/QPM.exe
   checks:
 
     runs-on: ubuntu-latest
