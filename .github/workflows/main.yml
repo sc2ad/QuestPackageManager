@@ -16,7 +16,7 @@ jobs:
       - name: Setup .NET Core
         uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: 5.x
+          dotnet-version: 5.0.0-preview.6.20305.6
       - name: Install dependencies
         working-directory: ./QPM
         run: dotnet restore
@@ -45,7 +45,7 @@ jobs:
       - name: Setup .NET Core
         uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: 5.x
+          dotnet-version: 5.0.0-preview.6.20305.6
       - name: Install dependencies
         run: dotnet restore
       - name: Build
