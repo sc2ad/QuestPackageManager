@@ -24,7 +24,7 @@ namespace QPM
     {
         private readonly IConfigProvider configProvider;
         private const string ApiUrl = "https://qpackages.com";
-        private const string AuthorizationHeader = "";
+        private const string AuthorizationHeader = "not that i can come up with";
 
         private readonly WebClient client;
 
@@ -37,11 +37,13 @@ namespace QPM
             };
         }
 
-        public List<ModPair> GetAll(string id)
+        public List<ModPair> GetAll(string id, uint limit = 0)
         {
             if (string.IsNullOrEmpty(id))
                 return null;
-            var s = client.DownloadString($"/all/{id}/*");
+            if (limit == 1)
+                limit = 0;
+            var s = client.DownloadString($"/{id}/?req=*&limit={limit}");
             return JsonSerializer.Deserialize<List<ModPair>>(s);
         }
 
@@ -51,7 +53,7 @@ namespace QPM
                 range = new SemVer.Range("*");
             if (string.IsNullOrEmpty(id))
                 return null;
-            var s = client.DownloadString($"/latest/{id}/{range}");
+            var s = client.DownloadString($"/{id}?req={range}");
             return JsonSerializer.Deserialize<ModPair>(s);
         }
 
@@ -69,7 +71,7 @@ namespace QPM
                 return null;
             if (version is null)
                 return null;
-            var s = client.DownloadString($"/mod/{id}/{version}");
+            var s = client.DownloadString($"/{id}/{version}");
             return configProvider.From(s);
         }
 
@@ -80,7 +82,7 @@ namespace QPM
             // We don't perform any validity here, simply ship it away
             var s = configProvider.ToString(config);
             client.Headers.Add(HttpRequestHeader.Authorization, AuthorizationHeader);
-            client.UploadString($"/mod/{config.Info.Id}/{config.Info.Version}", s);
+            client.UploadString($"/{config.Info.Id}/{config.Info.Version}", s);
         }
     }
 }
