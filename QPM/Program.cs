@@ -94,7 +94,7 @@ namespace QPM
 
             WebClient client = new WebClient();
             // soName is dictated by the overriden name, if it exists. Otherwise, it is this.
-            var soName = (config.Info.Id + "_" + config.Info.Version.ToString()).Replace('.', '_') + ".so";
+            var soName = "lib" + (config.Info.Id + "_" + config.Info.Version.ToString()).Replace('.', '_') + ".so";
             if (config.Info.AdditionalData.TryGetValue(SupportedPropertiesCommand.OverrideSoName, out var overridenName))
                 soName = overridenName.GetString();
             var tempLoc = Path.Combine(Utils.GetTempDir(), soName);

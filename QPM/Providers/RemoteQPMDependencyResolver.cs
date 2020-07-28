@@ -36,10 +36,10 @@ namespace QPM
 
         private static readonly HashSet<string> ExtensionsToFix = new HashSet<string>
         {
-            "cpp",
-            "c",
-            "hpp",
-            "h"
+            ".cpp",
+            ".c",
+            ".hpp",
+            ".h"
         };
 
         private bool IsGithubLink(Uri uri) => uri.AbsoluteUri.StartsWith(DownloadGithubUrl);
@@ -84,8 +84,10 @@ namespace QPM
 
             // git clone (url + .git), checout correct branch, and initialize submodules
             if (!DependencyCached(downloadFolder, config))
-                // Check this project's config to ensure it matches
+            {
+                Console.WriteLine($"Trying to clone from: {url}.git");
                 Repository.Clone(url + ".git", downloadFolder, new CloneOptions { BranchName = branchName, RecurseSubmodules = true });
+            }
         }
 
         public Config GetConfig(Dependency dependency)
@@ -123,7 +125,8 @@ namespace QPM
 
         private void CopyAdditionalData(JsonElement elem, string root, string dst, string sharedDir)
         {
-            var sharedStr = $"/{sharedDir}/";
+            var sharedStr = sharedDir + "/";
+            Console.WriteLine("Copying additional data, sharedStr: " + sharedStr);
             void ResolveIncludesFromAdditionalData(string fileName)
             {
                 // For each file that we copy over, check if it is a .c, .cpp, .h, or .hpp file
@@ -136,7 +139,7 @@ namespace QPM
                     while (ind > 0 && ind < lines.Count)
                     {
                         lines[ind] = lines[ind].Replace(sharedStr, "");
-                        ind = lines.FindIndex(ind, l => l.StartsWith("#include") && l.Contains(sharedStr));
+                        ind = lines.FindIndex(ind + 1, l => l.StartsWith("#include") && l.Contains(sharedStr));
                     }
                     File.WriteAllLines(fileName, lines);
                 }
