@@ -41,14 +41,18 @@ namespace QPM
             }
         }
 
-        public static void CopyDirectory(string source, string dst, bool recurse = true)
+        public static void CopyDirectory(string source, string dst, bool recurse = true, Action<string> onFileCopied = null)
         {
             DirectoryInfo dir = new DirectoryInfo(source);
             if (!Directory.Exists(dst))
                 Directory.CreateDirectory(dst);
 
             foreach (var f in dir.GetFiles())
-                f.CopyTo(Path.Combine(dst, f.Name));
+            {
+                var path = Path.Combine(dst, f.Name);
+                f.CopyTo(path);
+                onFileCopied?.Invoke(path);
+            }
 
             if (recurse)
                 foreach (var d in dir.GetDirectories())

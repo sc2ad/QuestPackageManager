@@ -34,6 +34,14 @@ namespace QPM
         private const string DownloadGithubUrl = "https://github.com";
         private const string DefaultBranch = "master";
 
+        private static readonly HashSet<string> ExtensionsToFix = new HashSet<string>
+        {
+            "cpp",
+            "c",
+            "hpp",
+            "h"
+        };
+
         private bool IsGithubLink(Uri uri) => uri.AbsoluteUri.StartsWith(DownloadGithubUrl);
 
         private bool DependencyCached(string downloadFolder, in Config dependencyConfig)
@@ -113,20 +121,40 @@ namespace QPM
             return conf;
         }
 
-        private void CopyAdditionalData(JsonElement elem, string root, string dst)
+        private void CopyAdditionalData(JsonElement elem, string root, string dst, string sharedDir)
         {
+            var sharedStr = $"/{sharedDir}/";
+            void ResolveIncludesFromAdditionalData(string fileName)
+            {
+                // For each file that we copy over, check if it is a .c, .cpp, .h, or .hpp file
+                // If it is, we need to check each line to make sure we fix all #includes
+                // For #includes, all we have to do is remove "/shared/" from the line
+                if (ExtensionsToFix.Contains(Path.GetExtension(fileName)))
+                {
+                    var lines = File.ReadAllLines(fileName).ToList();
+                    var ind = lines.FindIndex(l => l.StartsWith("#include") && l.Contains(sharedStr));
+                    while (ind > 0 && ind < lines.Count)
+                    {
+                        lines[ind] = lines[ind].Replace(sharedStr, "");
+                        ind = lines.FindIndex(ind, l => l.StartsWith("#include") && l.Contains(sharedStr));
+                    }
+                    File.WriteAllLines(fileName, lines);
+                }
+            }
             // Copy all extra data
             foreach (var item in elem.EnumerateArray())
             {
                 var location = Path.Combine(root, item.GetString());
                 if (File.Exists(location))
                 {
-                    File.Copy(location, Path.Combine(dst, item.GetString()));
+                    var dest = Path.Combine(dst, item.GetString());
+                    File.Copy(location, dest);
                     // If we want to fix includes, we should do so here
+                    ResolveIncludesFromAdditionalData(dest);
                 }
                 else if (Directory.Exists(location))
                 {
-                    Utils.CopyDirectory(location, Path.Combine(dst, item.GetString()));
+                    Utils.CopyDirectory(location, Path.Combine(dst, item.GetString()), onFileCopied: ResolveIncludesFromAdditionalData);
                     // If we want to fix includes, we should do so here
                 }
             }
@@ -142,11 +170,11 @@ namespace QPM
             // Combine the two, if there are two
             if (dependency.AdditionalData.TryGetValue(SupportedPropertiesCommand.AdditionalFiles, out var elemDep))
             {
-                CopyAdditionalData(elemDep, root, dst);
+                CopyAdditionalData(elemDep, root, dst, config.SharedDir);
             }
             if (config.Info.AdditionalData.TryGetValue(SupportedPropertiesCommand.AdditionalFiles, out var elemConfig))
             {
-                CopyAdditionalData(elemConfig, root, dst);
+                CopyAdditionalData(elemConfig, root, dst, config.SharedDir);
             }
         }
 
