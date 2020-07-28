@@ -1,9 +1,11 @@
-﻿using QPM.Commands;
+﻿using LibGit2Sharp;
+using QPM.Commands;
 using QPM.Providers;
 using QuestPackageManager;
 using QuestPackageManager.Data;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -21,7 +23,7 @@ namespace QPM
         private readonly QPMApi api;
         private readonly Dictionary<Dependency, Config> cached = new Dictionary<Dependency, Config>();
 
-        public event Action<Config, Config> OnDependencyResolved;
+        public event Action<Config, Config, Dependency> OnDependencyResolved;
 
         public RemoteQPMDependencyResolver(QPMApi api)
         {
@@ -34,21 +36,79 @@ namespace QPM
 
         private bool IsGithubLink(Uri uri) => uri.AbsoluteUri.StartsWith(DownloadGithubUrl);
 
+        private bool DependencyCached(string downloadFolder, in Config dependencyConfig)
+        {
+            if (Directory.Exists(downloadFolder))
+            {
+                var dirs = Utils.GetSubdir(downloadFolder);
+                // If the folder already exists, check to see if the config matches. If it does, we don't need to do anything.
+                var configProvider = new LocalConfigProvider(dirs, Program.PackageFileName, Program.LocalFileName);
+                var localDepConfig = configProvider.GetConfig();
+                if (localDepConfig is null || localDepConfig.Info is null || dependencyConfig.Info.Version != localDepConfig.Info.Version)
+                {
+                    Utils.DeleteDirectory(downloadFolder);
+                    return false;
+                }
+                return true;
+            }
+            return false;
+        }
+
+        private void HandleGithubLink(Uri url, in Config config, in Dependency dependency, string downloadFolder)
+        {
+            // If we have a github link, we need to create an archive download link
+            // We actually want to clone so we can get our submodules
+            // We want to "git clone thing.git"
+            // Followed by "git checkout branchName"
+            // And "git submodule update --init --recursive"
+            // branch is first determined from dependency AdditionalData
+            // TODO: Also add support/handling for tags, commits
+            string branchName = DefaultBranch;
+            if (!dependency.AdditionalData.TryGetValue(SupportedPropertiesCommand.BranchName, out var branchNameE))
+            {
+                // Otherwise, check config
+                if (config.Info.AdditionalData.TryGetValue(SupportedPropertiesCommand.BranchName, out branchNameE))
+                    // Otherwise, use DefaultBranchName
+                    branchName = branchNameE.GetString();
+            }
+            else
+                branchName = branchNameE.GetString();
+
+            // git clone (url + .git), checout correct branch, and initialize submodules
+            if (!DependencyCached(downloadFolder, config))
+                // Check this project's config to ensure it matches
+                Repository.Clone(url + ".git", downloadFolder, new CloneOptions { BranchName = branchName, RecurseSubmodules = true });
+        }
+
         public Config GetConfig(Dependency dependency)
         {
             if (cached.TryGetValue(dependency, out var conf))
                 return conf;
-            // Try to download dependency
-            try
+            if (!dependency.AdditionalData.TryGetValue(SupportedPropertiesCommand.LocalPath, out var localE))
             {
-                conf = api.GetLatestConfig(dependency);
+                // Try to download dependency
+                try
+                {
+                    conf = api.GetLatestConfig(dependency);
+                }
+                catch (WebException)
+                {
+                    return null;
+                }
             }
-            catch (WebException)
+            else
             {
-                return null;
+                try
+                {
+                    var path = localE.GetString();
+                    var cfgProv = new LocalConfigProvider(path, Program.PackageFileName, Program.LocalFileName);
+                    conf = cfgProv.GetConfig();
+                }
+                catch
+                {
+                    return null;
+                }
             }
-            // Download text from url
-            // Read config from text
             cached.Add(dependency, conf);
             return conf;
         }
@@ -112,59 +172,43 @@ namespace QPM
             if (!cached.TryGetValue(dependency, out var config))
                 config = GetConfig(dependency);
 
-            var url = config.Info.Url;
-
-            if (IsGithubLink(url))
+            if (!dependency.AdditionalData.TryGetValue(SupportedPropertiesCommand.LocalPath, out var localE))
             {
-                // If we have a github link, we need to create an archive download link
-                // branch is first determined from dependency AdditionalData
-                // TODO: Also add support/handling for tags, commits
-                string branchName = DefaultBranch;
-                if (!dependency.AdditionalData.TryGetValue(SupportedPropertiesCommand.BranchName, out var branchNameE))
+                // If not local, perform remote obtain
+
+                var url = config.Info.Url;
+                var outter = Utils.GetTempDir();
+                var downloadFolder = Path.Combine(outter, dependency.Id);
+
+                if (IsGithubLink(url))
                 {
-                    // Otherwise, check config
-                    if (config.Info.AdditionalData.TryGetValue(SupportedPropertiesCommand.BranchName, out branchNameE))
-                        // Otherwise, use DefaultBranchName
-                        branchName = branchNameE.GetString();
+                    // Creates a folder at Path.GetTempDir()/ID
+                    HandleGithubLink(url, config, dependency, downloadFolder);
                 }
                 else
-                    branchName = branchNameE.GetString();
-
-                var segs = url.Segments.ToList();
-                segs.Add("/");
-                segs.Add("archive/");
-                segs.Add(branchName + ".zip");
-                url = new Uri(DownloadGithubUrl + string.Join("", segs));
-            }
-            // Attempt to download the file as a zip
-            var outter = Utils.GetTempDir();
-            var downloadFolder = Path.Combine(outter, dependency.Id);
-            if (Directory.Exists(downloadFolder))
-            {
-                var dirs = Utils.GetSubdir(downloadFolder);
-                // If the folder already exists, check to see if the config matches. If it does, we don't need to do anything.
-                var configProvider = new LocalConfigProvider(dirs, Program.PackageFileName, Program.LocalFileName);
-                var localDepConfig = configProvider.GetConfig();
-                if (localDepConfig is null || localDepConfig.Info is null || config.Info.Version != localDepConfig.Info.Version)
                 {
-                    Utils.DeleteDirectory(downloadFolder);
-                    DownloadDependency(downloadFolder, url);
+                    // Attempt to download the file as a zip
+
+                    if (!DependencyCached(downloadFolder, config))
+                        DownloadDependency(downloadFolder, url);
+
+                    var root = Utils.GetSubdir(downloadFolder);
+                    var externalCfgProvider = new LocalConfigProvider(root, Program.PackageFileName, Program.LocalFileName);
+                    var externalCfg = externalCfgProvider.GetConfig();
+                    if (externalCfg is null || externalCfg.Info is null || config.Info.Version != externalCfg.Info.Version || !dependency.VersionRange.IsSatisfied(externalCfg.Info.Version))
+                    {
+                        throw new DependencyException($"Could not resolve dependency: {dependency.Id}! Downloaded config does not match obtained config!");
+                    }
                 }
-                // If we have it cached, simply copy
+                CopyTo(downloadFolder, myConfig, config, dependency);
             }
             else
             {
-                DownloadDependency(downloadFolder, url);
+                var localPath = localE.GetString();
+                // Copy the localPath folder to myConfig
+                CopyTo(localPath, myConfig, config, dependency);
             }
-            var root = Utils.GetSubdir(downloadFolder);
-            var externalCfgProvider = new LocalConfigProvider(root, Program.PackageFileName, Program.LocalFileName);
-            var externalCfg = externalCfgProvider.GetConfig();
-            if (externalCfg is null || externalCfg.Info is null || config.Info.Version != externalCfg.Info.Version || !dependency.VersionRange.IsSatisfied(externalCfg.Info.Version))
-            {
-                throw new DependencyException($"Could not resolve dependency: {dependency.Id}! Downloaded config does not match obtained config!");
-            }
-            CopyTo(downloadFolder, myConfig, config, dependency);
-            OnDependencyResolved?.Invoke(myConfig, config);
+            OnDependencyResolved?.Invoke(myConfig, config, dependency);
         }
 
         public void RemoveDependency(in Config myConfig, in Dependency dependency) => Directory.Delete(Path.Combine(myConfig.DependenciesDir, dependency.Id), true);

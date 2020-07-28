@@ -29,11 +29,23 @@ namespace QPM.Commands
         [Property("Specify that this package is headers only and does not contain a .so file", "package", Type = "bool")]
         public const string HeadersOnly = "headersOnly";
 
-        [Property("Specify the download link for a .so file", "package")]
-        public const string SoLink = "soLink";
+        [Property("Specify the download link for a release .so file", "package")]
+        public const string ReleaseSoLink = "soLink";
 
         [Property("Specify any additional files to be downloaded", "package", "dependency", Type = "array[string]")]
         public const string AdditionalFiles = "extraFiles";
+
+        [Property("Copy a dependency from a location that is local to this root path instead of from a remote url", "dependency")]
+        public const string LocalPath = "localPath";
+
+        [Property("Specify the download link for a debug .so files (usually from the obj folder)", "package")]
+        public const string DebugSoLink = "debugSoLink";
+
+        [Property("Specify if a dependency should download a release .so file. Defaults to false", "dependency", Type = "bool")]
+        public const string UseReleaseSo = "useRelease";
+
+        [Property("Override the downloaded .so filename with this name instead.", "package")]
+        public const string OverrideSoName = "overrideSoName";
 
         private const string Header = "Supported Additional Properties:";
 

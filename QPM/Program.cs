@@ -65,7 +65,7 @@ namespace QPM
             return -1;
         }
 
-        private static void Program_OnDependencyResolved(Config myConfig, Config config)
+        private static void Program_OnDependencyResolved(Config myConfig, Config config, Dependency dependency)
         {
             if (config.Info.AdditionalData.TryGetValue(SupportedPropertiesCommand.HeadersOnly, out var headerE) && headerE.GetBoolean())
             {
@@ -75,12 +75,23 @@ namespace QPM
             }
             // Handle obtaining .so file from external config
             // Grab the .so file link from AdditionalData and handle it
-            if (!config.Info.AdditionalData.TryGetValue(SupportedPropertiesCommand.SoLink, out var soLinkE))
-                throw new DependencyException($"Dependency: {config.Info.Id} has no 'soLink' property! Cannot download so to link!");
-            var soLink = soLinkE.GetString();
+            // First, try to see if we have a debugSoLink. If we do, AND we either: don't have releaseSo OR it is set to false, use it
+            // Otherwise, use the release so link.
+            string soLink = null;
+            if (config.Info.AdditionalData.TryGetValue(SupportedPropertiesCommand.DebugSoLink, out var soLinkE))
+                if (!dependency.AdditionalData.TryGetValue(SupportedPropertiesCommand.UseReleaseSo, out var releaseE) || !releaseE.GetBoolean())
+                    soLink = soLinkE.GetString();
+            // If we have no debug link, we must get it from the release so link.
+            // If we cannot get it, we have to throw
+            soLink = soLink is null && !config.Info.AdditionalData.TryGetValue(SupportedPropertiesCommand.ReleaseSoLink, out soLinkE)
+                ? throw new DependencyException($"Dependency: {config.Info.Id} has no 'soLink' property! Cannot download so to link!")
+                : soLinkE.GetString();
 
             WebClient client = new WebClient();
+            // soName is dictated by the overriden name, if it exists. Otherwise, it is this.
             var soName = (config.Info.Id + "_" + config.Info.Version.ToString()).Replace('.', '_') + ".so";
+            if (config.Info.AdditionalData.TryGetValue(SupportedPropertiesCommand.OverrideSoName, out var overridenName))
+                soName = overridenName.GetString();
             var tempLoc = Path.Combine(Utils.GetTempDir(), soName);
             var fileLoc = Path.Combine(myConfig.DependenciesDir, soName);
             if (File.Exists(fileLoc))
