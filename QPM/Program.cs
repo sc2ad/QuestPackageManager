@@ -73,6 +73,11 @@ namespace QPM
                 // Instead, exit.
                 return;
             }
+            // If we are LOCAL, however, we simply need to check to make sure if we want release or debug
+            // Then we look in the local repo for those files
+            // If we find them, copy them over
+            // If we cannot find them, use the links.
+            // If we STILL cannot find them, we exit
             // Handle obtaining .so file from external config
             // Grab the .so file link from AdditionalData and handle it
             // First, try to see if we have a debugSoLink. If we do, AND we either: don't have releaseSo OR it is set to false, use it

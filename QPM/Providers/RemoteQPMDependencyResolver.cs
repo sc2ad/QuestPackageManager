@@ -182,23 +182,21 @@ namespace QPM
 
                 if (IsGithubLink(url))
                 {
-                    // Creates a folder at Path.GetTempDir()/ID
+                    // Attempt to handle the github link by cloning {url}.git and all submodules
                     HandleGithubLink(url, config, dependency, downloadFolder);
                 }
                 else
                 {
-                    // Attempt to download the file as a zip
-
+                    // Attempt to download the file as a zip and extract it
                     if (!DependencyCached(downloadFolder, config))
                         DownloadDependency(downloadFolder, url);
-
-                    var root = Utils.GetSubdir(downloadFolder);
-                    var externalCfgProvider = new LocalConfigProvider(root, Program.PackageFileName, Program.LocalFileName);
-                    var externalCfg = externalCfgProvider.GetConfig();
-                    if (externalCfg is null || externalCfg.Info is null || config.Info.Version != externalCfg.Info.Version || !dependency.VersionRange.IsSatisfied(externalCfg.Info.Version))
-                    {
-                        throw new DependencyException($"Could not resolve dependency: {dependency.Id}! Downloaded config does not match obtained config!");
-                    }
+                }
+                var root = Utils.GetSubdir(downloadFolder);
+                var externalCfgProvider = new LocalConfigProvider(root, Program.PackageFileName, Program.LocalFileName);
+                var externalCfg = externalCfgProvider.GetConfig();
+                if (externalCfg is null || externalCfg.Info is null || config.Info.Version != externalCfg.Info.Version || !dependency.VersionRange.IsSatisfied(externalCfg.Info.Version))
+                {
+                    throw new DependencyException($"Could not resolve dependency: {dependency.Id}! Downloaded config does not match obtained config!");
                 }
                 CopyTo(downloadFolder, myConfig, config, dependency);
             }
