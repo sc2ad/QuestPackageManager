@@ -72,6 +72,12 @@ namespace QPM
             return actualRoot;
         }
 
+        public static void DeleteTempDir()
+        {
+            var outter = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), Assembly.GetExecutingAssembly().GetName().Name);
+            DeleteDirectory(outter);
+        }
+
         public static string GetTempDir()
         {
             var outter = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), Assembly.GetExecutingAssembly().GetName().Name);

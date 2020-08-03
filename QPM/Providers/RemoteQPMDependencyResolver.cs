@@ -126,7 +126,7 @@ namespace QPM
         private void CopyAdditionalData(JsonElement elem, string root, string dst, string sharedDir)
         {
             var sharedStr = sharedDir + "/";
-            Console.WriteLine("Copying additional data, sharedStr: " + sharedStr);
+            Console.WriteLine("Copying additional data...");
             void ResolveIncludesFromAdditionalData(string fileName)
             {
                 // For each file that we copy over, check if it is a .c, .cpp, .h, or .hpp file
@@ -138,6 +138,7 @@ namespace QPM
                     var ind = lines.FindIndex(l => l.StartsWith("#include") && l.Contains(sharedStr));
                     while (ind > 0 && ind < lines.Count)
                     {
+                        Console.WriteLine("Fixing include: " + lines[ind]);
                         lines[ind] = lines[ind].Replace(sharedStr, "");
                         ind = lines.FindIndex(ind + 1, l => l.StartsWith("#include") && l.Contains(sharedStr));
                     }
