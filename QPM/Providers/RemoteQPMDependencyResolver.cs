@@ -10,6 +10,8 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Net;
+using System.Security.AccessControl;
+using System.Security.Principal;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -87,6 +89,12 @@ namespace QPM
             {
                 Console.WriteLine($"Trying to clone from: {url}.git");
                 Repository.Clone(url + ".git", downloadFolder, new CloneOptions { BranchName = branchName, RecurseSubmodules = true });
+                var di = new DirectoryInfo(downloadFolder);
+                var security = di.GetAccessControl();
+                //var group = security.GetGroup(typeof(NTAccount));
+                var others = new SecurityIdentifier(WellKnownSidType.BuiltinUsersSid, null).Translate(typeof(NTAccount));
+                security.AddAccessRule(new FileSystemAccessRule(others, FileSystemRights.FullControl, AccessControlType.Allow));
+                di.SetAccessControl(security);
             }
         }
 
