@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 namespace QPM
 {
     [Command("qpm", Description = "Quest package manager")]
-    [Subcommand(typeof(PackageCommand), typeof(DependencyCommand), typeof(RestoreCommand), typeof(PublishCommand), typeof(SupportedPropertiesCommand))]
+    [Subcommand(typeof(PackageCommand), typeof(DependencyCommand), typeof(RestoreCommand), typeof(PublishCommand), typeof(SupportedPropertiesCommand), typeof(CacheCommand), typeof(ClearCommand))]
     internal class Program
     {
         internal const string PackageFileName = "qpm.json";
@@ -24,7 +24,7 @@ namespace QPM
         internal static RestoreHandler RestoreHandler { get; private set; }
         internal static PublishHandler PublishHandler { get; private set; }
 
-        private static IConfigProvider configProvider;
+        internal static IConfigProvider configProvider;
         private static IDependencyResolver resolver;
         private static CppPropertiesProvider propertiesProvider;
         private static BmbfModProvider bmbfmodProvider;
@@ -65,6 +65,7 @@ namespace QPM
             return -1;
         }
 
+        // TODO: Restructure this function!
         private static void Program_OnDependencyResolved(Config myConfig, Config config, Dependency dependency)
         {
             if (config.Info.AdditionalData.TryGetValue(SupportedPropertiesCommand.HeadersOnly, out var headerE) && headerE.GetBoolean())
@@ -83,9 +84,48 @@ namespace QPM
             // First, try to see if we have a debugSoLink. If we do, AND we either: don't have releaseSo OR it is set to false, use it
             // Otherwise, use the release so link.
             string soLink = null;
+            bool useRelease = false;
+            if (dependency.AdditionalData.TryGetValue(SupportedPropertiesCommand.UseReleaseSo, out var releaseE) && releaseE.GetBoolean())
+                useRelease = true;
+
+            // If it does, use it.
+            // Otherwise, throw an error
+            string style = null;
+            if (dependency.AdditionalData.TryGetValue(SupportedPropertiesCommand.StyleToUse, out var styleStr))
+                style = styleStr.GetString();
+
+            if (style != null)
+            {
+                // If we provide a style that we would like to use, we need to see if that style exists.
+                // Check the config
+                if (config.Info.AdditionalData.TryGetValue(SupportedPropertiesCommand.Styles, out var styles))
+                {
+                    bool found = false;
+                    foreach (var s in styles.EnumerateArray())
+                    {
+                        // If s is a valid style (it should be)
+                        if (s.TryGetProperty(SupportedPropertiesCommand.Style_Name, out var styleName) && styleName.GetString() == style)
+                        {
+                            // Use this style
+                            if (s.TryGetProperty(SupportedPropertiesCommand.DebugSoLink, out var soLinkEStyle) && !useRelease)
+                                soLink = soLinkEStyle.GetString();
+                            soLink = soLink is null && !s.TryGetProperty(SupportedPropertiesCommand.ReleaseSoLink, out soLinkEStyle)
+                                ? throw new DependencyException($"Dependency: {config.Info.Id}, using style: {style} has no 'soLink' property! Cannot download so to link!")
+                                : soLinkEStyle.GetString();
+                            found = true;
+                            break;
+                        }
+                        else
+                            throw new DependencyException($"Style in resolved dependency: {config.Info.Id} does not have a {SupportedPropertiesCommand.Style_Name} property!");
+                    }
+                    if (!found)
+                        // Throw if we can't find the dependency
+                        throw new DependencyException($"Resolved dependency: {config.Info.Id} does not have style: {style}!");
+                }
+            }
+
             if (config.Info.AdditionalData.TryGetValue(SupportedPropertiesCommand.DebugSoLink, out var soLinkE))
-                if (!dependency.AdditionalData.TryGetValue(SupportedPropertiesCommand.UseReleaseSo, out var releaseE) || !releaseE.GetBoolean())
-                    soLink = soLinkE.GetString();
+                soLink = soLinkE.GetString();
             // If we have no debug link, we must get it from the release so link.
             // If we cannot get it, we have to throw
             soLink = soLink is null && !config.Info.AdditionalData.TryGetValue(SupportedPropertiesCommand.ReleaseSoLink, out soLinkE)

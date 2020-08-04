@@ -15,6 +15,7 @@ namespace QPM.Data
         public List<string> SharedLibs { get; set; } = new List<string>();
         public List<string> LdLibs { get; set; } = new List<string>();
         public List<string> CFlags { get; set; } = new List<string>();
+        public List<string> ExportCFlags { get; set; } = new List<string>();
         public List<string> CppFlags { get; set; } = new List<string>();
         public List<string> CIncludes { get; set; } = new List<string>();
         public List<string> CppFeatures { get; set; } = new List<string>();

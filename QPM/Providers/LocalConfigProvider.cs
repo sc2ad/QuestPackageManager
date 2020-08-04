@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -30,6 +31,7 @@ namespace QPM.Providers
                 WriteIndented = true,
                 PropertyNameCaseInsensitive = true,
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
             };
         }
 

@@ -14,7 +14,11 @@ namespace QPM.Commands
         [Command("clear", Description = "Clear the cache")]
         internal class CacheClear
         {
-            private void OnExecute() => Utils.DeleteTempDir();
+            private void OnExecute()
+            {
+                Utils.DeleteTempDir();
+                Utils.WriteSuccess();
+            }
         }
     }
 }

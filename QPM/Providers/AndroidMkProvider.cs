@@ -143,6 +143,12 @@ namespace QPM.Providers
                                 module.ExportIncludes = string.Empty;
                             module.ExportIncludes += parsed;
                         }
+                        else if (line.StartsWith("LOCAL_EXPORT_CFLAGS"))
+                        {
+                            if (type == Concat.Set)
+                                module.ExportCFlags.Clear();
+                            module.ExportCFlags.AddRange(ParseLine(parsed));
+                        }
                         else if (line.StartsWith("LOCAL_SHARED_LIBRARIES"))
                         {
                             if (type == Concat.Set)
@@ -209,6 +215,8 @@ namespace QPM.Providers
                 sb.AppendLine("LOCAL_MODULE := " + m.Id);
                 if (!string.IsNullOrEmpty(m.ExportIncludes))
                     sb.AppendLine("LOCAL_EXPORT_C_INCLUDES := " + m.ExportIncludes);
+                if (m.ExportCFlags.Any())
+                    sb.AppendLine("LOCAL_EXPORT_C_FLAGS := " + string.Join(' ', m.CppFeatures));
                 if (m.Src.Count == 1)
                     sb.AppendLine("LOCAL_SRC_FILES := " + m.Src.First());
                 else

@@ -127,24 +127,7 @@ namespace QPM
         {
             var sharedStr = sharedDir + "/";
             Console.WriteLine("Copying additional data...");
-            void ResolveIncludesFromAdditionalData(string fileName)
-            {
-                // For each file that we copy over, check if it is a .c, .cpp, .h, or .hpp file
-                // If it is, we need to check each line to make sure we fix all #includes
-                // For #includes, all we have to do is remove "/shared/" from the line
-                if (ExtensionsToFix.Contains(Path.GetExtension(fileName)))
-                {
-                    var lines = File.ReadAllLines(fileName).ToList();
-                    var ind = lines.FindIndex(l => l.StartsWith("#include") && l.Contains(sharedStr));
-                    while (ind > 0 && ind < lines.Count)
-                    {
-                        Console.WriteLine("Fixing include: " + lines[ind]);
-                        lines[ind] = lines[ind].Replace(sharedStr, "");
-                        ind = lines.FindIndex(ind + 1, l => l.StartsWith("#include") && l.Contains(sharedStr));
-                    }
-                    File.WriteAllLines(fileName, lines);
-                }
-            }
+            // There's no longer any need to resolve our includes. They should literally be fine as-is.
             // Copy all extra data
             foreach (var item in elem.EnumerateArray())
             {
@@ -153,20 +136,17 @@ namespace QPM
                 {
                     var dest = Path.Combine(dst, item.GetString());
                     File.Copy(location, dest);
-                    // If we want to fix includes, we should do so here
-                    ResolveIncludesFromAdditionalData(dest);
                 }
                 else if (Directory.Exists(location))
                 {
-                    Utils.CopyDirectory(location, Path.Combine(dst, item.GetString()), onFileCopied: ResolveIncludesFromAdditionalData);
-                    // If we want to fix includes, we should do so here
+                    Utils.CopyDirectory(location, Path.Combine(dst, item.GetString()));
                 }
             }
         }
 
         private void CopyTo(string downloadFolder, in Config myConfig, in Config config, in Dependency dependency)
         {
-            var dst = Path.Combine(myConfig.DependenciesDir, config.Info.Id);
+            var dst = Path.Combine(myConfig.DependenciesDir, config.Info.Id, config.SharedDir);
             if (Directory.Exists(dst))
                 Utils.DeleteDirectory(dst);
             var root = Utils.GetSubdir(downloadFolder);

@@ -47,6 +47,15 @@ namespace QPM.Commands
         [Property("Override the downloaded .so filename with this name instead.", "package")]
         public const string OverrideSoName = "overrideSoName";
 
+        [Property("Provide various download links of differing styles. Styles are appended to module names.", "package", Type = "array[object{string name, string soLink, string debugSoLink}]")]
+        public const string Styles = "styles";
+
+        [Property("Specify the style to use.", "dependency")]
+        public const string StyleToUse = "style";
+
+        [Property("Name of the style", "style")]
+        public const string Style_Name = "name";
+
         private const string Header = "Supported Additional Properties:";
 
         private void OnExecute()
