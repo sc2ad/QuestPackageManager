@@ -185,6 +185,10 @@ namespace QPM.Providers
                                 module.CppFeatures.Clear();
                             module.CppFeatures.AddRange(ParseLine(parsed));
                         }
+                        else
+                        {
+                            module.ExtraLines.Add(line);
+                        }
                     }
                     if (line.StartsWith("include $(CLEAR_VARS)"))
                     {
@@ -235,6 +239,9 @@ namespace QPM.Providers
                     sb.AppendLine("LOCAL_C_INCLUDES += " + string.Join(' ', m.CIncludes));
                 if (m.CppFeatures.Any())
                     sb.AppendLine("LOCAL_CPP_FEATURES += " + string.Join(' ', m.CppFeatures));
+                // Suffix all unknown lines, hopefully this is good enough
+                foreach (var e in m.ExtraLines)
+                    sb.AppendLine(e);
                 sb.AppendLine(m.BuildLine);
             }
 

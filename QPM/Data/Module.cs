@@ -19,6 +19,7 @@ namespace QPM.Data
         public List<string> CppFlags { get; set; } = new List<string>();
         public List<string> CIncludes { get; set; } = new List<string>();
         public List<string> CppFeatures { get; set; } = new List<string>();
+        public List<string> ExtraLines { get; set; } = new List<string>();
         public string BuildLine { get; set; }
 
         public void AddDefine(string id, string value)
