@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 namespace QPM.Commands
 {
     [Command("package", Description = "Package control")]
-    [Subcommand(typeof(PackageCreate), typeof(PackageEdit))]
+    [Subcommand(typeof(PackageCreate), typeof(PackageEdit), typeof(PackageEditExtra))]
     internal class PackageCommand
     {
         [Command("create", Description = "Create a package")]
@@ -143,6 +143,31 @@ namespace QPM.Commands
             // TODO: Add qpm package edit extra (add, remove)
 
             private void OnExecute(CommandLineApplication app) => app.ShowHelp();
+        }
+
+        [Command("edit-extra", Description = "Edit extra supported properties of the package")]
+        internal class PackageEditExtra
+        {
+            [Argument(0, "id", Description = "ID of the property to modify")]
+            [Required]
+            public string Id { get; }
+
+            [Argument(1, "value", Description = "Value to set the property to")]
+            [Required]
+            public string Value { get; }
+
+            private void OnExecute()
+            {
+                if (string.IsNullOrEmpty(Id))
+                    throw new ArgumentException("Id for 'package edit-extra' cannot be null or empty!");
+                var cfg = Program.configProvider.GetConfig();
+                var createdDoc = JsonDocument.Parse($"\"{Value}\"");
+                var elem = createdDoc.RootElement;
+                cfg.Info.AdditionalData[Id] = elem;
+                Program.configProvider.Commit();
+                Console.WriteLine($"Changed package additional info: {Id} to: {Value}");
+                Utils.WriteSuccess();
+            }
         }
 
         private void OnExecute(CommandLineApplication app) => app.ShowHelp();
