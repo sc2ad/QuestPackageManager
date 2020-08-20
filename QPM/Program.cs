@@ -167,7 +167,6 @@ namespace QPM
                         $"# Creating prebuilt for dependency: {config.Info.Id} - version: {config.Info.Version}",
                         "include $(CLEAR_VARS)"
                     },
-                    Id = config.Info.Id,
                     Src = new List<string>
                     {
                         fileLoc.Replace('\\', '/')
@@ -175,6 +174,7 @@ namespace QPM
                     ExportIncludes = Path.Combine(myConfig.DependenciesDir, config.Info.Id).Replace('\\', '/'),
                     BuildLine = "include $(PREBUILT_SHARED_LIBRARY)"
                 };
+                module.EnsureIdIs(config.Info.Id, config.Info.Version);
                 var main = mk.Modules.LastOrDefault();
                 if (main != null)
                 {
@@ -250,6 +250,7 @@ namespace QPM
                 if (module != null)
                 {
                     module.AddDefine("VERSION", version.ToString());
+                    module.EnsureIdIs(mod.Id, version);
                     androidMkProvider.SerializeFile(mk);
                 }
             }

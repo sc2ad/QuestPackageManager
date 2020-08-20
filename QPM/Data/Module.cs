@@ -40,6 +40,8 @@ namespace QPM.Data
                 CFlags.Add(include);
         }
 
+        public void EnsureIdIs(string id, SemVer.Version version) => Id = id + "_" + version.ToString().Replace('.', '_');
+
         public void RemoveSharedLibrary(string id) => SharedLibs.RemoveAll(l => l.Equals(id, StringComparison.OrdinalIgnoreCase));
     }
 }
