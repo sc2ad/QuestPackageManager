@@ -179,10 +179,14 @@ namespace QPM
                 var main = mk.Modules.LastOrDefault();
                 if (main != null)
                 {
-                    if (main.SharedLibs.FirstOrDefault(s => module.Id.Equals(s, StringComparison.OrdinalIgnoreCase)) is null)
+                    // TODO: Probably a stupid check, but should be backed up (?) so should be more or less ok?
+                    // For matching modules with names: beatsaber-hook_0_3_0 for replacing with beatsaber-hook_0_4_4
+                    if (main.SharedLibs.FirstOrDefault(s => s.StartsWith(config.Info.Id + "_", StringComparison.OrdinalIgnoreCase)) is null)
                         main.SharedLibs.Add(module.Id);
                 }
-                var existing = mk.Modules.FindIndex(m => module.Id.Equals(m.Id, StringComparison.OrdinalIgnoreCase));
+                // TODO: Probably a stupid check, but should be backed up (?) so should be more or less ok?
+                // For matching modules with names: beatsaber-hook_0_3_0 for replacing with beatsaber-hook_0_4_4
+                var existing = mk.Modules.FindIndex(m => m.Id.StartsWith(config.Info.Id + "_", StringComparison.OrdinalIgnoreCase));
                 if (existing == -1)
                     mk.Modules.Insert(mk.Modules.Count - 1, module);
                 else
@@ -334,6 +338,13 @@ namespace QPM
                 mod.UpdateId(id);
                 bmbfmodProvider.SerializeMod(mod);
             }
+            var conf = configProvider.GetConfig();
+            if (conf is null)
+                throw new ConfigException("Config is null!");
+            if (conf.Info is null)
+                throw new ConfigException("Config info is null!");
+            if (conf.Info.Version is null)
+                throw new ConfigException("Config ID is null!");
             var mk = androidMkProvider.GetFile();
             if (mk != null)
             {
@@ -341,6 +352,7 @@ namespace QPM
                 if (module != null)
                 {
                     module.AddDefine("ID", id);
+                    module.EnsureIdIs(id, conf.Info.Version);
                     androidMkProvider.SerializeFile(mk);
                 }
             }
