@@ -189,8 +189,11 @@ namespace QPM
                 {
                     // TODO: Probably a stupid check, but should be backed up (?) so should be more or less ok?
                     // For matching modules with names: beatsaber-hook_0_3_0 for replacing with beatsaber-hook_0_4_4
-                    if (main.SharedLibs.FirstOrDefault(s => overrodeName ? module.Id.Equals(s, StringComparison.OrdinalIgnoreCase) : s.TrimStart().StartsWith(config.Info.Id, StringComparison.OrdinalIgnoreCase)) is null)
+                    int sharedLib = main.SharedLibs.FindIndex(s => overrodeName ? module.Id.Equals(s, StringComparison.OrdinalIgnoreCase) : s.TrimStart().StartsWith(config.Info.Id, StringComparison.OrdinalIgnoreCase));
+                    if (sharedLib < 0)
                         main.SharedLibs.Add(module.Id);
+                    else
+                        main.SharedLibs[sharedLib] = module.Id;
                 }
                 // TODO: Probably a stupid check, but should be backed up (?) so should be more or less ok?
                 // For matching modules with names: beatsaber-hook_0_3_0 for replacing with beatsaber-hook_0_4_4
