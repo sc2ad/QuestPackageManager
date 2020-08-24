@@ -144,18 +144,19 @@ namespace QPM
             }
             var tempLoc = Path.Combine(Utils.GetTempDir(), soName);
             var fileLoc = Path.Combine(myConfig.DependenciesDir, soName);
-            if (File.Exists(fileLoc))
-                // If we have a file here already, we can simply return
-                return;
-            if (File.Exists(tempLoc))
-                // Copy the temp file to our current, then make sure we setup everything
-                File.Copy(tempLoc, fileLoc);
-            else
+            if (!File.Exists(fileLoc))
             {
-                // We have to download
-                Console.WriteLine($"Downloading so from: {soLink}");
-                client.DownloadFile(soLink, tempLoc);
-                File.Copy(tempLoc, fileLoc);
+                // If we have a file here already, we simply perform the modifications and call it a day
+                if (File.Exists(tempLoc))
+                    // Copy the temp file to our current, then make sure we setup everything
+                    File.Copy(tempLoc, fileLoc);
+                else
+                {
+                    // We have to download
+                    Console.WriteLine($"Downloading so from: {soLink}");
+                    client.DownloadFile(soLink, tempLoc);
+                    File.Copy(tempLoc, fileLoc);
+                }
             }
             // Perform modifications to the Android.mk and c_cpp_properties.json as necessary (I don't think c_cpp_properties.json should change, includePath is constant)
             // But Android.mk needs some things changed:
@@ -188,16 +189,19 @@ namespace QPM
                 {
                     // TODO: Probably a stupid check, but should be backed up (?) so should be more or less ok?
                     // For matching modules with names: beatsaber-hook_0_3_0 for replacing with beatsaber-hook_0_4_4
-                    if (main.SharedLibs.FirstOrDefault(s => overrodeName ? module.Id.Equals(s, StringComparison.OrdinalIgnoreCase) : s.StartsWith(config.Info.Id + "_", StringComparison.OrdinalIgnoreCase)) is null)
+                    if (main.SharedLibs.FirstOrDefault(s => overrodeName ? module.Id.Equals(s, StringComparison.OrdinalIgnoreCase) : s.TrimStart().StartsWith(config.Info.Id + "_", StringComparison.OrdinalIgnoreCase)) is null)
                         main.SharedLibs.Add(module.Id);
                 }
                 // TODO: Probably a stupid check, but should be backed up (?) so should be more or less ok?
                 // For matching modules with names: beatsaber-hook_0_3_0 for replacing with beatsaber-hook_0_4_4
-                var existing = mk.Modules.FindIndex(m => overrodeName ? module.Id.Equals(m.Id, StringComparison.OrdinalIgnoreCase) : m.Id.StartsWith(config.Info.Id + "_", StringComparison.OrdinalIgnoreCase));
-                if (existing == -1)
+                var existing = mk.Modules.FindIndex(m => overrodeName ? module.Id.Equals(m.Id, StringComparison.OrdinalIgnoreCase) : m.Id.TrimStart().StartsWith(config.Info.Id + "_", StringComparison.OrdinalIgnoreCase));
+                if (existing < 0)
+                {
                     mk.Modules.Insert(mk.Modules.Count - 1, module);
+                }
                 else
                 {
+                    mk.Modules[existing].Id = module.Id;
                     mk.Modules[existing].Src = module.Src;
                     mk.Modules[existing].ExportIncludes = module.ExportIncludes;
                 }
