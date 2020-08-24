@@ -188,12 +188,12 @@ namespace QPM
                 {
                     // TODO: Probably a stupid check, but should be backed up (?) so should be more or less ok?
                     // For matching modules with names: beatsaber-hook_0_3_0 for replacing with beatsaber-hook_0_4_4
-                    if (main.SharedLibs.FirstOrDefault(s => s.StartsWith(config.Info.Id + "_", StringComparison.OrdinalIgnoreCase)) is null)
+                    if (main.SharedLibs.FirstOrDefault(s => overrodeName ? module.Id.Equals(s, StringComparison.OrdinalIgnoreCase) : s.StartsWith(config.Info.Id + "_", StringComparison.OrdinalIgnoreCase)) is null)
                         main.SharedLibs.Add(module.Id);
                 }
                 // TODO: Probably a stupid check, but should be backed up (?) so should be more or less ok?
                 // For matching modules with names: beatsaber-hook_0_3_0 for replacing with beatsaber-hook_0_4_4
-                var existing = mk.Modules.FindIndex(m => m.Id.StartsWith(config.Info.Id + "_", StringComparison.OrdinalIgnoreCase));
+                var existing = mk.Modules.FindIndex(m => overrodeName ? module.Id.Equals(m.Id, StringComparison.OrdinalIgnoreCase) : m.Id.StartsWith(config.Info.Id + "_", StringComparison.OrdinalIgnoreCase));
                 if (existing == -1)
                     mk.Modules.Insert(mk.Modules.Count - 1, module);
                 else
