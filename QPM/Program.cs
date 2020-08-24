@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Runtime.Versioning;
 using System.Threading.Tasks;
 
 namespace QPM
@@ -243,6 +244,13 @@ namespace QPM
                 mod.UpdateVersion(version);
                 bmbfmodProvider.SerializeMod(mod);
             }
+            var conf = configProvider.GetConfig();
+            if (conf is null)
+                throw new ConfigException("Config is null!");
+            if (conf.Info is null)
+                throw new ConfigException("Config info is null!");
+            if (conf.Info.Id is null)
+                throw new ConfigException("Config ID is null!");
             var mk = androidMkProvider.GetFile();
             if (mk != null)
             {
@@ -250,7 +258,7 @@ namespace QPM
                 if (module != null)
                 {
                     module.AddDefine("VERSION", version.ToString());
-                    module.EnsureIdIs(mod.Id, version);
+                    module.EnsureIdIs(conf.Info.Id, version);
                     androidMkProvider.SerializeFile(mk);
                 }
             }
