@@ -136,8 +136,12 @@ namespace QPM
             WebClient client = new WebClient();
             // soName is dictated by the overriden name, if it exists. Otherwise, it is this.
             var soName = "lib" + (config.Info.Id + "_" + config.Info.Version.ToString()).Replace('.', '_') + ".so";
+            bool overrodeName = false;
             if (config.Info.AdditionalData.TryGetValue(SupportedPropertiesCommand.OverrideSoName, out var overridenName))
+            {
+                overrodeName = true;
                 soName = overridenName.GetString();
+            }
             var tempLoc = Path.Combine(Utils.GetTempDir(), soName);
             var fileLoc = Path.Combine(myConfig.DependenciesDir, soName);
             if (File.Exists(fileLoc))
@@ -175,7 +179,10 @@ namespace QPM
                     ExportIncludes = Path.Combine(myConfig.DependenciesDir, config.Info.Id).Replace('\\', '/'),
                     BuildLine = "include $(PREBUILT_SHARED_LIBRARY)"
                 };
-                module.EnsureIdIs(config.Info.Id, config.Info.Version);
+                if (overrodeName)
+                    module.Id = soName.ReplaceFirst("lib", "").ReplaceLast(".so", "");
+                else
+                    module.EnsureIdIs(config.Info.Id, config.Info.Version);
                 var main = mk.Modules.LastOrDefault();
                 if (main != null)
                 {
@@ -255,6 +262,7 @@ namespace QPM
                 throw new ConfigException("Config info is null!");
             if (conf.Info.Id is null)
                 throw new ConfigException("Config ID is null!");
+            bool overrodeName = conf.Info.AdditionalData.TryGetValue(SupportedPropertiesCommand.OverrideSoName, out var overridenName);
             var mk = androidMkProvider.GetFile();
             if (mk != null)
             {
@@ -262,7 +270,10 @@ namespace QPM
                 if (module != null)
                 {
                     module.AddDefine("VERSION", version.ToString());
-                    module.EnsureIdIs(conf.Info.Id, version);
+                    if (overrodeName)
+                        module.Id = overridenName.GetString().ReplaceFirst("lib", "").ReplaceLast(".so", "");
+                    else
+                        module.EnsureIdIs(conf.Info.Id, version);
                     androidMkProvider.SerializeFile(mk);
                 }
             }
@@ -315,6 +326,12 @@ namespace QPM
                     // Also add includePath for myConfig
                     if (cfg != null)
                     {
+                        if (cfg.Info.AdditionalData.TryGetValue(SupportedPropertiesCommand.OverrideSoName, out var overridenName))
+                        {
+                            module.Id = overridenName.GetString().ReplaceFirst("lib", "").ReplaceLast(".so", "");
+                        }
+                        else
+                            module.EnsureIdIs(info.Id, info.Version);
                         module.AddIncludePath("./" + shared);
                         module.AddIncludePath("./" + depDir);
                     }
@@ -352,7 +369,10 @@ namespace QPM
                 if (module != null)
                 {
                     module.AddDefine("ID", id);
-                    module.EnsureIdIs(id, conf.Info.Version);
+                    if (conf.Info.AdditionalData.TryGetValue(SupportedPropertiesCommand.OverrideSoName, out var overridenName))
+                        module.Id = overridenName.GetString().Replace("lib", "").Replace(".so", "");
+                    else
+                        module.EnsureIdIs(id, conf.Info.Version);
                     androidMkProvider.SerializeFile(mk);
                 }
             }

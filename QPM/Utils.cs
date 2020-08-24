@@ -85,5 +85,21 @@ namespace QPM
                 Directory.CreateDirectory(outter);
             return outter;
         }
+
+        public static string ReplaceFirst(this string str, string toFind, string toReplace)
+        {
+            var loc = str.IndexOf(toFind);
+            if (loc < 0)
+                return str;
+            return str.Substring(0, loc) + toReplace + str.Substring(loc + toFind.Length);
+        }
+
+        public static string ReplaceLast(this string str, string toFind, string toReplace)
+        {
+            var loc = str.LastIndexOf(toFind);
+            if (loc < 0)
+                return str;
+            return str.Substring(0, loc) + toReplace + str.Substring(loc + toFind.Length);
+        }
     }
 }
