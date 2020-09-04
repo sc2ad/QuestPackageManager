@@ -22,6 +22,13 @@ namespace QPM
 
         public static void WriteFail(string message = "Failed!") => WriteMessage(message, ConsoleColor.Red);
 
+        public static void CreateDirectory(string path)
+        {
+            var info = Directory.CreateDirectory(path);
+            if (info.Attributes.HasFlag(FileAttributes.ReadOnly))
+                info.Attributes &= ~FileAttributes.ReadOnly;
+        }
+
         public static void DeleteDirectory(string path)
         {
             foreach (string directory in Directory.GetDirectories(path))
@@ -81,9 +88,7 @@ namespace QPM
         public static string GetTempDir()
         {
             var outter = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), Assembly.GetExecutingAssembly().GetName().Name + "_Temp");
-            var info = Directory.CreateDirectory(outter);
-            if (info.Attributes.HasFlag(FileAttributes.ReadOnly))
-                info.Attributes &= ~FileAttributes.ReadOnly;
+            CreateDirectory(outter);
             return outter;
         }
 

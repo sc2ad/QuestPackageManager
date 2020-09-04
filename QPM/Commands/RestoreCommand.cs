@@ -1,6 +1,8 @@
 ﻿using McMaster.Extensions.CommandLineUtils;
+using QuestPackageManager.Data;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -12,6 +14,11 @@ namespace QPM.Commands
     {
         private void OnExecute()
         {
+            var config = Program.configProvider.GetConfig();
+            if (config is null)
+                throw new ConfigException("Cannot restore without a valid QPM package! Try 'qpm package create' first.");
+            Utils.CreateDirectory(Path.Combine(Environment.CurrentDirectory, config.SharedDir));
+            Utils.CreateDirectory(Path.Combine(Environment.CurrentDirectory, config.DependenciesDir));
             Program.RestoreHandler.Restore();
             Utils.WriteSuccess();
         }
