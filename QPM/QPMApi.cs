@@ -37,6 +37,12 @@ namespace QPM
             };
         }
 
+        public List<string> GetAllPackages()
+        {
+            var s = client.DownloadString("/");
+            return JsonSerializer.Deserialize<List<string>>(s);
+        }
+
         public List<ModPair> GetAll(string id, uint limit = 0)
         {
             if (string.IsNullOrEmpty(id))
