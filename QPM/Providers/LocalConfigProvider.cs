@@ -85,7 +85,11 @@ namespace QPM.Providers
             {
                 if (createOnFail)
                 {
-                    localConfig = new SharedConfig();
+                    // localConfig has a reference to config
+                    var config = GetConfig();
+                    if (config is null)
+                        return localConfig;
+                    localConfig = new SharedConfig { Config = config };
                     Console.WriteLine("Creating new local config at: " + localConfigPath);
                     // Commit the created config when we explicitly want to create on failure
                     Commit();
