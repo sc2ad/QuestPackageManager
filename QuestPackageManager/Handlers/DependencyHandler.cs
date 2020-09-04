@@ -80,23 +80,16 @@ namespace QuestPackageManager
             if (result)
             {
                 OnConfigDependencyRemoved?.Invoke(this, conf, matchingDep);
-                // No need to commit unless we actually changed the config with a successful removal
-                configProvider.Commit();
+                // Get local config to remove dependency from IncludedDependencies if it exists
+                var sharedConf = configProvider.GetSharedConfig();
+                if (sharedConf != null)
+                    sharedConf.RestoredDependencies.RemoveAll(p => p.id == matchingId.ToUpperInvariant());
                 // Perform additional modification
                 OnDependencyRemoved?.Invoke(this, matchingDep);
-                // Get local config to remove dependency from IncludedDependencies if it exists
                 // This happens only after OnDependencyRemoved occurrs, ensuring that throws will happen properly
-                var localConf = configProvider.GetLocalConfig();
-                if (localConf != null)
-                {
-                    var match = localConf.IncludedDependencies.FirstOrDefault(d => matchingId.Equals(d.Id, StringComparison.OrdinalIgnoreCase));
-                    if (match != null)
-                    {
-                        localConf.IncludedDependencies.Remove(match);
-                        // Commit local config after included dependencies are modified
-                        configProvider.Commit();
-                    }
-                }
+                // No need to commit unless we actually changed the config with a successful removal
+                // We commit this change to both our config and shared config objects.
+                configProvider.Commit();
             }
             return result;
         }

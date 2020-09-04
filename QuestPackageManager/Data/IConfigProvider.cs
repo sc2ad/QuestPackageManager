@@ -12,7 +12,7 @@ namespace QuestPackageManager.Data
 
         Config? From(string data);
 
-        LocalConfig? GetLocalConfig(bool createOnFail = false);
+        SharedConfig? GetSharedConfig(bool createOnFail = false);
 
         Config? GetConfig(bool createOnFail = false);
 

@@ -9,9 +9,11 @@ namespace QuestPackageManager
 {
     public interface IDependencyResolver
     {
-        public Config? GetConfig(Dependency dependency);
+        public SharedConfig? GetSharedConfig(Dependency dependency);
 
         public void ResolveDependency(in Config myConfig, in Dependency dependency);
+
+        public void ResolveUniqueDependency(in Config myConfig, in SharedConfig resolved);
 
         public void RemoveDependency(in Config myConfig, in Dependency dependency);
     }

@@ -1,5 +1,4 @@
-﻿using Moq;
-using QuestPackageManager.Data;
+﻿using QuestPackageManager.Data;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,11 +8,12 @@ using Xunit;
 
 namespace QuestPackageManager.Tests.RestoreHandlerTests
 {
-    public class CollectDependenciesTests
+    public class CollapseDependenciesTests
     {
         [Fact]
-        public void CollectDependenciesSimple()
+        public void TestSimpleCollapse()
         {
+            // Collect a dependency, collapse it, and nothing should change
             var config = new Config() { Info = new PackageInfo("MyMod", "asdf", new SemVer.Version("0.1.0")) };
             var dep = new Dependency("id", new SemVer.Range("^0.1.0"));
             config.Dependencies.Add(dep);
@@ -25,16 +25,15 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
             var restorer = new RestoreHandler(configProvider.Object, uriHandler.Object);
             // Should not throw
             var deps = restorer.CollectDependencies();
-            // Ensure we still only have one dependency and nothing has changed
-            var checkD = deps.Keys.SingleOrDefault();
-            Assert.True(checkD != default);
-            Assert.True(checkD.Id == dep.Id);
-            Assert.True(checkD.VersionRange == dep.VersionRange);
+            var result = RestoreHandler.CollapseDependencies(deps);
+            foreach (var kvp in deps)
+                Assert.True(result.TryGetValue(kvp.Key.Id!.ToUpperInvariant(), out var val) && kvp.Value == val);
         }
 
         [Fact]
-        public void CollectDependenciesNestedNew()
+        public void TestNestedCollapse()
         {
+            // Collect nested dependencies, collapse them, nothing should change
             var config = new Config() { Info = new PackageInfo("MyMod", "asdf", new SemVer.Version("0.1.0")) };
             var dep = new Dependency("id", new SemVer.Range("^0.1.0"));
             config.Dependencies.Add(dep);
@@ -49,16 +48,15 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
             var restorer = new RestoreHandler(configProvider.Object, uriHandler.Object);
             // Should not throw
             var deps = restorer.CollectDependencies();
-            // We should now have TWO dependencies, one for id and one for id2
-            // Order of these dependencies should not matter. They just both need to be in there.
-            Assert.True(deps.Count == 2);
-            Assert.NotNull(deps.Keys.FirstOrDefault(d => d.Id == dep.Id && d.VersionRange == dep.VersionRange));
-            Assert.NotNull(deps.Keys.FirstOrDefault(d => d.Id == innerDep.Id && d.VersionRange == innerDep.VersionRange));
+            var result = RestoreHandler.CollapseDependencies(deps);
+            foreach (var kvp in deps)
+                Assert.True(result.TryGetValue(kvp.Key.Id!.ToUpperInvariant(), out var val) && kvp.Value == val);
         }
 
         [Fact]
-        public void CollectDependenciesNestedExisting()
+        public void TestCollapseMatching()
         {
+            // Collect nested dependencies that are collapsible, should result in 1
             var config = new Config() { Info = new PackageInfo("MyMod", "asdf", new SemVer.Version("0.1.0")) };
             var dep = new Dependency("id", new SemVer.Range("^0.1.0"));
             var otherDep = new Dependency("needed", new SemVer.Range("^0.1.4"));
@@ -78,57 +76,14 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
             var restorer = new RestoreHandler(configProvider.Object, uriHandler.Object);
             // Should not throw
             var deps = restorer.CollectDependencies();
-            // We should now STILL HAVE THREE dependencies, one for "id" and two for "needed"
-            Assert.True(deps.Count == 3);
-            Assert.NotNull(deps.Keys.FirstOrDefault(d => d.Id == dep.Id && d.VersionRange == dep.VersionRange));
-            Assert.NotNull(deps.Keys.FirstOrDefault(d => d.Id == otherDep.Id && d.VersionRange == otherDep.VersionRange));
-            Assert.NotNull(deps.Keys.LastOrDefault(d => d.Id == innerDep.Id && d.VersionRange == innerDep.VersionRange));
+            var result = RestoreHandler.CollapseDependencies(deps);
+            Assert.True(result.Count == 2);
+            Assert.True(result[dep.Id.ToUpperInvariant()].Config.Info.Version == depConfig.Config.Info.Version);
+            Assert.True(result[otherDep.Id.ToUpperInvariant()].Config.Info.Version == innerDepConfig.Config.Info.Version);
         }
 
         [Fact]
-        public void CollectDependenciesRecursive()
-        {
-            var config = new Config() { Info = new PackageInfo("MyMod", "id", new SemVer.Version("0.1.0")) };
-            var dep = new Dependency("id", new SemVer.Range("^0.1.0"));
-            config.Dependencies.Add(dep);
-            var depConfig = new SharedConfig { Config = new Config() { Info = new PackageInfo("Cool Name", "id", new SemVer.Version("0.1.0")) } };
-
-            var configProvider = Utils.GetConfigProvider(config);
-            var uriHandler = Utils.GetUriHandler(new Dictionary<Dependency, SharedConfig> { { dep, depConfig } });
-
-            var restorer = new RestoreHandler(configProvider.Object, uriHandler.Object);
-            // Should throw a recursive exception (id cannot include id)
-            Assert.Throws<DependencyException>(() => restorer.CollectDependencies());
-            // Should never have made any GetConfig calls
-            uriHandler.Verify(mocks => mocks.GetSharedConfig(It.IsAny<Dependency>()), Times.Never);
-        }
-
-        [Fact]
-        public void CollectDependenciesNestedRecursive()
-        {
-            var config = new Config() { Info = new PackageInfo("MyMod", "id", new SemVer.Version("0.1.0")) };
-            var dep = new Dependency("asdf", new SemVer.Range("^0.1.0"));
-            config.Dependencies.Add(dep);
-            var depConfig = new SharedConfig { Config = new Config() { Info = new PackageInfo("Cool Name", "asdf", new SemVer.Version("0.1.0")) } };
-            // It's undefined behavior to attempt to load a config that allows its dependencies to ask for itself
-            // Therefore, we will test ourselves, and all other configs must follow this same principle
-            var innerDep = new Dependency("id", new SemVer.Range("^0.1.0"));
-            depConfig.Config.Dependencies.Add(innerDep);
-            var innerDepConfig = new SharedConfig();
-
-            var configProvider = Utils.GetConfigProvider(config);
-            var uriHandler = Utils.GetUriHandler(new Dictionary<Dependency, SharedConfig> { { dep, depConfig }, { innerDep, innerDepConfig } });
-
-            var restorer = new RestoreHandler(configProvider.Object, uriHandler.Object);
-            // Should throw a recursive exception (id cannot include id)
-            Assert.Throws<DependencyException>(() => restorer.CollectDependencies());
-            // Should have tried to get asdf's config
-            uriHandler.Verify(mocks => mocks.GetSharedConfig(dep), Times.Once);
-            uriHandler.Verify(mocks => mocks.GetSharedConfig(innerDep), Times.Never);
-        }
-
-        [Fact]
-        public void CollectDependenciesDoNotMatchConfig()
+        public void TestCollapseInvalid()
         {
             // Collect nested dependencies that are not collapsible, should cause a DependencyException
             // Collect nested dependencies that are collapsible, should result in 1
@@ -140,17 +95,19 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
             var depConfig = new SharedConfig { Config = new Config() { Info = new PackageInfo("Cool Name", "id", new SemVer.Version("0.1.0")) } };
             var innerDep = new Dependency("needed", new SemVer.Range("0.1.0"));
             depConfig.Config.Dependencies.Add(innerDep);
-            var innerDepConfig = new SharedConfig { Config = new Config { Info = new PackageInfo("Needed by both", "needed", new SemVer.Version("0.1.4")) } };
+            var otherDepConfig = new SharedConfig { Config = new Config { Info = new PackageInfo("Needed by both", "needed", new SemVer.Version("0.1.4")) } };
+            var innerDepConfig = new SharedConfig { Config = new Config { Info = new PackageInfo("Needed by both", "needed", new SemVer.Version("0.1.0")) } };
 
             var configProvider = Utils.GetConfigProvider(config);
             var uriHandler = Utils.GetUriHandler(new Dictionary<Dependency, SharedConfig>
             {
-                { dep, depConfig }, { otherDep, innerDepConfig }, { innerDep, innerDepConfig }
+                { dep, depConfig }, { otherDep, otherDepConfig }, { innerDep, innerDepConfig }
             });
 
             var restorer = new RestoreHandler(configProvider.Object, uriHandler.Object);
             // Should not throw
-            Assert.Throws<DependencyException>(() => restorer.CollectDependencies());
+            var deps = restorer.CollectDependencies();
+            Assert.Throws<DependencyException>(() => RestoreHandler.CollapseDependencies(deps));
         }
     }
 }

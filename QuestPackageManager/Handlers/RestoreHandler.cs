@@ -13,19 +13,19 @@ namespace QuestPackageManager
     public class RestoreHandler
     {
         private readonly IConfigProvider configProvider;
-        private readonly IDependencyResolver uriHandler;
+        private readonly IDependencyResolver dependencyResolver;
 
-        public event Action<RestoreHandler, List<Dependency>>? OnDependenciesCollected;
+        public event Action<RestoreHandler, Dictionary<Dependency, SharedConfig>>? OnDependenciesCollected;
 
-        public event Action<RestoreHandler, List<Dependency>>? OnRestore;
+        public event Action<RestoreHandler, Dictionary<Dependency, SharedConfig>, Dictionary<string, SharedConfig>>? OnRestore;
 
-        public RestoreHandler(IConfigProvider configProvider, IDependencyResolver uriHandler)
+        public RestoreHandler(IConfigProvider configProvider, IDependencyResolver dependencyResolver)
         {
             this.configProvider = configProvider;
-            this.uriHandler = uriHandler;
+            this.dependencyResolver = dependencyResolver;
         }
 
-        private void CollectDependencies(string thisId, ref List<Dependency> myDependencies, Dependency d)
+        private void CollectDependencies(string thisId, ref Dictionary<Dependency, SharedConfig> myDependencies, Dependency d)
         {
             // Null assertions
             if (d is null)
@@ -37,62 +37,50 @@ namespace QuestPackageManager
             if (thisId.Equals(d.Id, StringComparison.OrdinalIgnoreCase))
                 throw new DependencyException($"Recursive dependency! Tried to get dependency: {d.Id}, but {thisId} matches {d.Id}!");
             // We want to convert our uri into a config file
-            var depConfig = uriHandler.GetConfig(d);
+            var depConfig = dependencyResolver.GetSharedConfig(d);
             if (depConfig is null)
                 throw new ConfigException($"Could not find config for: {d.Id}");
             // Then we want to check to ensure that the config file we have gotten is within our version
-            if (depConfig.Info is null)
+            if (depConfig.Config is null)
+                throw new ConfigException($"Confid is of an invalid format for: {d.Id} - No config!");
+            if (depConfig.Config.Info is null)
                 throw new ConfigException($"Config is of an invalid format for: {d.Id} - No info!");
-            if (string.IsNullOrEmpty(depConfig.Info.Id))
+            if (string.IsNullOrEmpty(depConfig.Config.Info.Id))
                 throw new ConfigException($"Config is of an invalid format for: {d.Id} - No Id!");
             // Check to make sure the config's version matches our dependency's version
-            if (!depConfig.Info.Id.Equals(d.Id, StringComparison.OrdinalIgnoreCase))
-                throw new ConfigException($"Dependency and config have different ids! {d.Id} != {depConfig.Info.Id}!");
-            if (depConfig.Info.Version is null)
+            if (!depConfig.Config.Info.Id.Equals(d.Id, StringComparison.OrdinalIgnoreCase))
+                throw new ConfigException($"Dependency and config have different ids! {d.Id} != {depConfig.Config.Info.Id}!");
+            if (depConfig.Config.Info.Version is null)
                 throw new ConfigException($"Config is of an invalid format for: {d.Id} - No Version!");
             // If it isn't, we fail to match our dependencies, exit out.
-            if (!d.VersionRange.IsSatisfied(depConfig.Info.Version))
-                throw new DependencyException($"Dependency unmet! Want: {d.VersionRange} got: {depConfig.Info.Version} for: {d.Id}");
+            if (!d.VersionRange.IsSatisfied(depConfig.Config.Info.Version))
+                throw new DependencyException($"Dependency unmet! Want: {d.VersionRange} got: {depConfig.Config.Info.Version} for: {d.Id}");
+            // Add our mapping from dependency to config
+            myDependencies.Add(d, depConfig);
             // Otherwise, we iterate over all of the config's dependencies
-            foreach (var innerD in depConfig.Dependencies)
+            foreach (var innerD in depConfig.Config.Dependencies)
             {
                 if (innerD.Id is null)
-                    throw new ConfigException($"Config id: {depConfig.Info.Id} has dependency with null id!");
-                var existing = myDependencies.FirstOrDefault(dep => innerD.Id.Equals(dep.Id, StringComparison.OrdinalIgnoreCase));
-                if (existing is null)
+                    throw new ConfigException($"Config id: {depConfig.Config.Info.Id} has dependency with null id!");
+                if (!myDependencies.TryGetValue(innerD, out var innerDConfig))
                 {
-                    // For each one, we see if it is a unique ID (one we don't have without our own dependencies) add it if it is
-                    myDependencies.Add(innerD);
-                    // Collect dependencies of this
+                    // Collect dependencies of this inner dependency, which should also add itself to myDependencies.
                     CollectDependencies(thisId, ref myDependencies, innerD);
                 }
-                else
-                {
-                    // If it is not, we check to see if our dependency includes the dependency used
-                    // ex: MyDep@^0.1.0
-                    // TheirDep.Dependencies[MyDep@^0.0.1] should be valid
-                    if (existing.VersionRange is null)
-                        throw new ConfigException($"Dependency: {existing.Id} {nameof(existing.VersionRange)} is null!");
-                    var intersection = existing.VersionRange.Intersect(innerD.VersionRange);
-                    if (intersection.ToString() == "<0.0.0")
-                        // Case where intersections do not overlap
-                        throw new DependencyException($"Dependency range fault! Want: {existing.VersionRange} but dependency: {innerD.Id} (under dependency: {d.Id}) wants: {innerD.VersionRange}");
-                    // Otherwise, modify the existing element's version range to match.
-                    // This is done with copies, so we don't need to worry about breaking anything.
-                    existing.VersionRange = intersection;
-                }
-                // If the dependencies do not intersect, we can't create two unique, same ID dependencies. Tell user they have unmet dependencies.
+                // Otherwise, the inner dependency already exists and has a config.
+                // We can actually take it easy here, we only need to COLLECT our dependencies, we don't need to COLLAPSE them.
             }
+            // When we are done, myDependencies should contain a mapping of ALL of our dependencies (recursively) mapped to their SharedConfigs.
         }
 
-        public List<Dependency> CollectDependencies()
+        public Dictionary<Dependency, SharedConfig> CollectDependencies()
         {
             var config = configProvider.GetConfig();
             if (config is null)
                 throw new ConfigException(Resources.ConfigNotFound);
             if (config.Info is null)
                 throw new ConfigException(Resources.ConfigInfoIsNull);
-            var myDependencies = config.Dependencies.ToList();
+            var myDependencies = new Dictionary<Dependency, SharedConfig>();
             foreach (var d in config.Dependencies)
                 CollectDependencies(config.Info.Id, ref myDependencies, d);
             // Call post dependency resolution code
@@ -100,45 +88,98 @@ namespace QuestPackageManager
             return myDependencies;
         }
 
+        /// <summary>
+        /// Collapses a fully saturated mapping of <see cref="Dependency"/> to <see cref="SharedConfig"/>
+        /// with one or more <see cref="Dependency"/> objects having the same <see cref="Dependency.Id"/> field.
+        /// </summary>
+        /// <param name="deps">Mapping to collapse</param>
+        /// <returns>A mapping of unique uppercased dependency IDs to <see cref="SharedConfig"/></returns>
+        public static Dictionary<string, SharedConfig> CollapseDependencies(Dictionary<Dependency, SharedConfig> deps)
+        {
+            if (deps is null)
+                throw new ArgumentNullException(nameof(deps));
+            var uniqueDeps = new Dictionary<string, List<(Dependency dep, SharedConfig conf)>>();
+            var collapsed = new Dictionary<string, SharedConfig>();
+            // For each Dependency, we want to find all other dependencies that have the same ID
+            foreach (var dep in deps)
+            {
+                if (dep.Key.Id is null)
+                    continue;
+                if (uniqueDeps.TryGetValue(dep.Key.Id.ToUpperInvariant(), out var matchingDeps))
+                    matchingDeps.Add((dep.Key, dep.Value));
+                else
+                    uniqueDeps.Add(dep.Key.Id.ToUpperInvariant(), new List<(Dependency dep, SharedConfig conf)> { (dep.Key, dep.Value) });
+            }
+            foreach (var p in uniqueDeps)
+            {
+                if (p.Value.Count == 0)
+                    continue;
+                var intersection = p.Value[0].dep.VersionRange;
+                var confToAdd = p.Value[0].conf;
+                for (int i = 1; i < p.Value.Count; i++)
+                {
+                    // If we have multiple matching dependencies, intersect across all of them.
+                    var val = p.Value[i].dep;
+                    if (val.VersionRange is null)
+                        throw new ConfigException($"Dependency: {val.Id} has a null {nameof(Dependency.VersionRange)}!");
+                    var tmp = val.VersionRange.Intersect(intersection);
+                    // Now take the intersection, if it is 0.0.0, say "uhoh"
+                    if (tmp.ToString() == "<0.0.0")
+                        throw new DependencyException($"Dependency: {val.Id} needs version range: {val.VersionRange} which does not intersect: {intersection}");
+                    // Now we need to check to see if the current config is of a greater version than the config we want to add
+                    // If it is, set it
+                    // We can assume SharedConfig has no null fields from CollectDependencies
+                    if (p.Value[i].conf.Config?.Info?.Version > confToAdd.Config?.Info?.Version)
+                        confToAdd = p.Value[i].conf;
+                    intersection = tmp;
+                }
+                // Add uppercase ID to collapsed mapping
+                collapsed.Add(p.Key, confToAdd);
+            }
+            return collapsed;
+        }
+
+        /// <summary>
+        ///
+        /// </summary>
         public void Restore()
         {
             var config = configProvider.GetConfig();
             if (config is null)
                 throw new ConfigException(Resources.ConfigNotFound);
-            var localConfig = configProvider.GetLocalConfig(true);
-            if (localConfig is null)
+            var sharedConfig = configProvider.GetSharedConfig(true);
+            if (sharedConfig is null)
                 throw new ConfigException(Resources.LocalConfigNotCreated);
             if (config.Info is null)
                 throw new ConfigException(Resources.ConfigInfoIsNull);
             var myDependencies = CollectDependencies();
 
-            // After all dependencies are grabbed, compare it with our current met dependencies
-            foreach (var d in myDependencies)
+            // After all dependencies are grabbed, filter for ones we haven't yet met
+            // Collapse our dependencies into unique IDs
+            // This can throw, based off of invalid matches
+            var collapsed = CollapseDependencies(myDependencies);
+            var unrestored = myDependencies.Where(kvp =>
             {
-                if (d.Id is null)
-                    throw new ConfigException(Resources.DependencyIdNull);
-                var included = localConfig.IncludedDependencies.FirstOrDefault(dep => d.Id.Equals(dep.Id, StringComparison.OrdinalIgnoreCase));
-                if (included is null)
-                {
-                    // Add d to config.MetDependencies
-                    // This involves performing a full download, we call IUriHandler to perform this operation
-                    // If it throws, it is the caller's responsibilty to catch
-                    // This function is responsible for doing anything necessary to the project in order to ensure the dependency has been resolved correctly.
-                    // It should throw if anything fails
-                    uriHandler.ResolveDependency(config, d);
-                    localConfig.IncludedDependencies.Add(d);
-                }
-                else if (included.VersionRange is null)
-                    throw new ConfigException($"Dependency: {included} {nameof(included.VersionRange)} is null!");
-                else if (included.VersionRange.Intersect(d.VersionRange).ToString() == "<0.0.0")
-                    // Case where versions do not intersect
-                    // TODO: Add a way to fixup included dependencies
-                    throw new DependencyException($"Currently has {included.Id} with version range: {included.VersionRange} which does not match required: {d.VersionRange}");
-                // Otherwise, we don't need to do anything. We have already included it.
+                if (kvp.Key is null
+                    || kvp.Key.Id is null
+                    || kvp.Key.VersionRange is null)
+                    return true;
+                var (_, version) = sharedConfig.RestoredDependencies.Find(p => p.id == kvp.Key.Id.ToUpperInvariant());
+                return !kvp.Key.VersionRange.IsSatisfied(version);
+            });
+
+            foreach (var kvp in unrestored)
+            {
+                // For each of the (non-unique) dependencies, resolve each one.
+                // However, we only want to HEADER resolve the unique dependencies
+                dependencyResolver.ResolveDependency(config, kvp.Key);
+                var key = kvp.Key!.Id!.ToUpperInvariant();
+                dependencyResolver.ResolveUniqueDependency(config, collapsed[key]);
+                sharedConfig.RestoredDependencies.Add((key, collapsed[key]!.Config!.Info!.Version));
             }
-            configProvider.Commit();
             // Perform additional modification here
-            OnRestore?.Invoke(this, myDependencies);
+            OnRestore?.Invoke(this, myDependencies, collapsed);
+            configProvider.Commit();
 
             // Collect dependencies and resolve them.
             // This should just involve grabbing them from GH or whatever URL is provided, ensuring versions match
