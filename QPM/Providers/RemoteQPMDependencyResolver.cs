@@ -81,7 +81,9 @@ namespace QPM
             if (!DependencyCached(downloadFolder, sharedConfig))
             {
                 Console.WriteLine($"Trying to clone from: {url}.git to: {downloadFolder}");
-                Repository.Clone(url + ".git", downloadFolder, new CloneOptions { BranchName = branchName, RecurseSubmodules = true });
+                // This may not always be the case
+                bool recurse = data.ContainsKey(SupportedPropertiesCommand.AdditionalFiles);
+                Repository.Clone(url + ".git", downloadFolder, new CloneOptions { BranchName = branchName, RecurseSubmodules = recurse });
             }
         }
 
