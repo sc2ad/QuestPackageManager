@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace QuestPackageManager
@@ -17,7 +18,7 @@ namespace QuestPackageManager
 
         public event Action<RestoreHandler, Dictionary<Dependency, SharedConfig>>? OnDependenciesCollected;
 
-        public event Action<RestoreHandler, Dictionary<Dependency, SharedConfig>, Dictionary<string, SharedConfig>>? OnRestore;
+        public event Action<RestoreHandler, Dictionary<Dependency, SharedConfig>, Dictionary<string, (Dictionary<string, JsonElement> data, SharedConfig conf)>>? OnRestore;
 
         public RestoreHandler(IConfigProvider configProvider, IDependencyResolver dependencyResolver)
         {
@@ -94,12 +95,12 @@ namespace QuestPackageManager
         /// </summary>
         /// <param name="deps">Mapping to collapse</param>
         /// <returns>A mapping of unique uppercased dependency IDs to <see cref="SharedConfig"/></returns>
-        public static Dictionary<string, SharedConfig> CollapseDependencies(Dictionary<Dependency, SharedConfig> deps)
+        public static Dictionary<string, (Dictionary<string, JsonElement> data, SharedConfig conf)> CollapseDependencies(Dictionary<Dependency, SharedConfig> deps)
         {
             if (deps is null)
                 throw new ArgumentNullException(nameof(deps));
             var uniqueDeps = new Dictionary<string, List<(Dependency dep, SharedConfig conf)>>();
-            var collapsed = new Dictionary<string, SharedConfig>();
+            var collapsed = new Dictionary<string, (Dictionary<string, JsonElement> data, SharedConfig conf)>();
             // For each Dependency, we want to find all other dependencies that have the same ID
             foreach (var dep in deps)
             {
@@ -116,6 +117,10 @@ namespace QuestPackageManager
                     continue;
                 var intersection = p.Value[0].dep.VersionRange;
                 var confToAdd = p.Value[0].conf;
+                // Also collapse the additional data into a single dependency's additional data
+                var data = new Dictionary<string, JsonElement>();
+                foreach (var d in p.Value[0].dep.AdditionalData)
+                    data.Add(d.Key, d.Value);
                 for (int i = 1; i < p.Value.Count; i++)
                 {
                     // If we have multiple matching dependencies, intersect across all of them.
@@ -134,7 +139,7 @@ namespace QuestPackageManager
                     intersection = tmp;
                 }
                 // Add uppercase ID to collapsed mapping
-                collapsed.Add(p.Key, confToAdd);
+                collapsed.Add(p.Key, (data, confToAdd));
             }
             return collapsed;
         }
@@ -175,7 +180,7 @@ namespace QuestPackageManager
                 dependencyResolver.ResolveDependency(config, kvp.Key);
                 var key = kvp.Key!.Id!.ToUpperInvariant();
                 dependencyResolver.ResolveUniqueDependency(config, collapsed[key]);
-                sharedConfig.RestoredDependencies.Add((key, collapsed[key]!.Config!.Info!.Version));
+                sharedConfig.RestoredDependencies.Add((key, collapsed[key]!.conf.Config!.Info!.Version));
             }
             // Perform additional modification here
             OnRestore?.Invoke(this, myDependencies, collapsed);

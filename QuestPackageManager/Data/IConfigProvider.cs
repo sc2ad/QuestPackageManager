@@ -8,9 +8,9 @@ namespace QuestPackageManager.Data
 {
     public interface IConfigProvider
     {
-        string ToString(Config? config);
+        string ToString(SharedConfig? config);
 
-        Config? From(string data);
+        SharedConfig? From(string data);
 
         SharedConfig? GetSharedConfig(bool createOnFail = false);
 

@@ -23,33 +23,28 @@ namespace QPM
         public void Publish()
         {
             // Ensure the config is valid
-            var config = configProvider.GetConfig();
-            if (config is null)
+            var sharedConfig = configProvider.GetSharedConfig();
+            if (sharedConfig is null)
                 throw new ConfigException("Config does not exist!");
-            var localConfig = configProvider.GetLocalConfig();
 
             // All ids in config.Dependencies must be covered in localConfig.IncludedDependencies
-            var ids = config.Dependencies.Select(d => d.Id);
-            if (ids.Any())
+            if (sharedConfig.Config.Dependencies.Any())
             {
-                if (localConfig is null)
-                    throw new ConfigException("Local config does not exist!");
-                foreach (var id in ids)
+                foreach (var d in sharedConfig.Config.Dependencies)
                 {
-                    var val = localConfig.IncludedDependencies.Find(d => id.Equals(d.Id, StringComparison.OrdinalIgnoreCase));
-                    if (val is null)
-                        throw new DependencyException("Not all dependencies are restored! Restore before attempting to publish!");
+                    if (!sharedConfig.RestoredDependencies.Exists(p => p.id == d.Id!.ToUpperInvariant() && d.VersionRange.IsSatisfied(p.version)))
+                        throw new DependencyException($"Not all dependencies are restored or of correct versions! Restore before attempting to publish! Missing or mismatch dependency: {d.Id} with range: {d.VersionRange}");
                 }
             }
             // My shared folder should have includes that don't use ..
             // My config should have both a Url and a soUrl
-            if (config.Info.Url is null)
+            if (sharedConfig.Config.Info.Url is null)
                 throw new DependencyException("Config url does not exist!");
-            if (!config.Info.AdditionalData.ContainsKey(SupportedPropertiesCommand.ReleaseSoLink) && (!config.Info.AdditionalData.TryGetValue(SupportedPropertiesCommand.HeadersOnly, out var header) || !header.GetBoolean()))
+            if (!sharedConfig.Config.Info.AdditionalData.ContainsKey(SupportedPropertiesCommand.ReleaseSoLink) && (!sharedConfig.Config.Info.AdditionalData.TryGetValue(SupportedPropertiesCommand.HeadersOnly, out var header) || !header.GetBoolean()))
                 throw new DependencyException($"Config {SupportedPropertiesCommand.ReleaseSoLink} does not exist! Try using {SupportedPropertiesCommand.HeadersOnly} if you do not need a .so file. See 'properties-list' for more info");
 
             // Push it to the server
-            api.Push(config);
+            api.Push(sharedConfig);
         }
     }
 }

@@ -16,7 +16,7 @@ namespace QPM.Providers
         private readonly string localConfigPath;
 
         private Config config;
-        private LocalConfig localConfig;
+        private SharedConfig localConfig;
         private bool configGotten;
         private bool localConfigGotten;
 
@@ -35,7 +35,7 @@ namespace QPM.Providers
             };
         }
 
-        public string ToString(Config config)
+        public string ToString(SharedConfig config)
         {
             try
             {
@@ -47,11 +47,11 @@ namespace QPM.Providers
             }
         }
 
-        public Config From(string data)
+        public SharedConfig From(string data)
         {
             try
             {
-                return JsonSerializer.Deserialize<Config>(data, options);
+                return JsonSerializer.Deserialize<SharedConfig>(data, options);
             }
             catch
             {
@@ -75,7 +75,7 @@ namespace QPM.Providers
             }
         }
 
-        public LocalConfig GetLocalConfig(bool createOnFail = false)
+        public SharedConfig GetSharedConfig(bool createOnFail = false)
         {
             if (localConfigGotten)
                 return localConfig;
@@ -85,7 +85,7 @@ namespace QPM.Providers
             {
                 if (createOnFail)
                 {
-                    localConfig = new LocalConfig();
+                    localConfig = new SharedConfig();
                     Console.WriteLine("Creating new local config at: " + localConfigPath);
                     // Commit the created config when we explicitly want to create on failure
                     Commit();
@@ -96,7 +96,7 @@ namespace QPM.Providers
                 // These will throw as needed to the caller on failure
                 // TODO: If we can solve the issue by recreating the JSON, we can try that here
                 var json = File.ReadAllText(localConfigPath);
-                localConfig = JsonSerializer.Deserialize<LocalConfig>(json, options);
+                localConfig = JsonSerializer.Deserialize<SharedConfig>(json, options);
             }
             return localConfig;
         }

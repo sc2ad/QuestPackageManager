@@ -27,7 +27,7 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
             var deps = restorer.CollectDependencies();
             var result = RestoreHandler.CollapseDependencies(deps);
             foreach (var kvp in deps)
-                Assert.True(result.TryGetValue(kvp.Key.Id!.ToUpperInvariant(), out var val) && kvp.Value == val);
+                Assert.True(result.TryGetValue(kvp.Key.Id!.ToUpperInvariant(), out var val) && kvp.Value == val.conf);
         }
 
         [Fact]
@@ -50,7 +50,7 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
             var deps = restorer.CollectDependencies();
             var result = RestoreHandler.CollapseDependencies(deps);
             foreach (var kvp in deps)
-                Assert.True(result.TryGetValue(kvp.Key.Id!.ToUpperInvariant(), out var val) && kvp.Value == val);
+                Assert.True(result.TryGetValue(kvp.Key.Id!.ToUpperInvariant(), out var val) && kvp.Value == val.conf);
         }
 
         [Fact]
@@ -78,8 +78,8 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
             var deps = restorer.CollectDependencies();
             var result = RestoreHandler.CollapseDependencies(deps);
             Assert.True(result.Count == 2);
-            Assert.True(result[dep.Id.ToUpperInvariant()].Config.Info.Version == depConfig.Config.Info.Version);
-            Assert.True(result[otherDep.Id.ToUpperInvariant()].Config.Info.Version == innerDepConfig.Config.Info.Version);
+            Assert.True(result[dep.Id.ToUpperInvariant()].conf.Config.Info.Version == depConfig.Config.Info.Version);
+            Assert.True(result[otherDep.Id.ToUpperInvariant()].conf.Config.Info.Version == innerDepConfig.Config.Info.Version);
         }
 
         [Fact]

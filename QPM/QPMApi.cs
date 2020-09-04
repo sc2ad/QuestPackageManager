@@ -59,13 +59,13 @@ namespace QPM
 
         public ModPair GetLatest(Dependency d) => GetLatest(d.Id, d.VersionRange);
 
-        public Config GetLatestConfig(Dependency d)
+        public SharedConfig GetLatestConfig(Dependency d)
         {
             var pair = GetLatest(d);
             return GetConfig(pair.Id, pair.Version);
         }
 
-        public Config GetConfig(string id, SemVer.Version version)
+        public SharedConfig GetConfig(string id, SemVer.Version version)
         {
             if (string.IsNullOrEmpty(id))
                 return null;
@@ -75,14 +75,14 @@ namespace QPM
             return configProvider.From(s);
         }
 
-        public void Push(Config config)
+        public void Push(SharedConfig config)
         {
             if (config is null)
                 throw new ArgumentNullException(nameof(config));
             // We don't perform any validity here, simply ship it away
             var s = configProvider.ToString(config);
             client.Headers.Add(HttpRequestHeader.Authorization, AuthorizationHeader);
-            client.UploadString($"/{config.Info.Id}/{config.Info.Version}", s);
+            client.UploadString($"/{config.Config.Info.Id}/{config.Config.Info.Version}", s);
         }
     }
 }
