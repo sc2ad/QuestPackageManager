@@ -86,7 +86,7 @@ namespace QuestPackageManager
                 // Get local config to remove dependency from IncludedDependencies if it exists
                 var sharedConf = configProvider.GetSharedConfig();
                 if (sharedConf != null)
-                    sharedConf.RestoredDependencies.RemoveAll(p => p.id == matchingId.ToUpperInvariant());
+                    sharedConf.RestoredDependencies.RemoveAll(p => p.Id == matchingId.ToUpperInvariant());
                 // Perform additional modification
                 OnDependencyRemoved?.Invoke(this, matchingDep);
                 // This happens only after OnDependencyRemoved occurrs, ensuring that throws will happen properly

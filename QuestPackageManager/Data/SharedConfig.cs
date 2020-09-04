@@ -23,6 +23,14 @@ namespace QuestPackageManager.Data
         /// Dependencies that were restored, ID, version pairs
         /// </summary>
         [JsonInclude]
-        public List<(string id, SemVer.Version version)> RestoredDependencies { get; private set; } = new List<(string id, SemVer.Version version)>();
+        public List<RestoredDependencyPair> RestoredDependencies { get; private set; } = new List<RestoredDependencyPair>();
+    }
+
+    public class RestoredDependencyPair
+    {
+        public string? Id { get; set; }
+
+        [JsonConverter(typeof(SemVerConverter))]
+        public SemVer.Version? Version { get; set; }
     }
 }

@@ -169,9 +169,9 @@ namespace QuestPackageManager
                     || kvp.Key.Id is null
                     || kvp.Key.VersionRange is null)
                     return true;
-                var pair = sharedConfig.RestoredDependencies.Find(p => p.id == kvp.Key.Id.ToUpperInvariant());
-                if (pair != default((string, SemVer.Version)))
-                    return !kvp.Key.VersionRange.IsSatisfied(pair.version);
+                var pair = sharedConfig.RestoredDependencies.Find(p => p.Id == kvp.Key.Id.ToUpperInvariant());
+                if (pair != null)
+                    return !kvp.Key.VersionRange.IsSatisfied(pair.Version);
                 return true;
             });
 
@@ -182,7 +182,7 @@ namespace QuestPackageManager
                 dependencyResolver.ResolveDependency(config, kvp.Key);
                 var key = kvp.Key!.Id!.ToUpperInvariant();
                 dependencyResolver.ResolveUniqueDependency(config, collapsed[key]);
-                sharedConfig.RestoredDependencies.Add((key, collapsed[key]!.conf.Config!.Info!.Version));
+                sharedConfig.RestoredDependencies.Add(new RestoredDependencyPair { Id = key, Version = collapsed[key]!.conf.Config!.Info!.Version });
             }
             // Perform additional modification here
             OnRestore?.Invoke(this, myDependencies, collapsed);

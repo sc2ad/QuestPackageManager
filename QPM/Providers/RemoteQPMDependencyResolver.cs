@@ -118,10 +118,9 @@ namespace QPM
             return conf;
         }
 
-        private void CopyAdditionalData(JsonElement elem, string root, string dst, string sharedDir)
+        private void CopyAdditionalData(JsonElement elem, string root, string dst)
         {
-            var sharedStr = sharedDir + "/";
-            Console.WriteLine("Copying additional data...");
+            Console.WriteLine($"Copying additional data from: {root} to: {dst}");
             // There's no longer any need to resolve our includes. They should literally be fine as-is.
             // Copy all extra data
             foreach (var item in elem.EnumerateArray())
@@ -145,15 +144,17 @@ namespace QPM
             if (Directory.Exists(dst))
                 Utils.DeleteDirectory(dst);
             var root = Utils.GetSubdir(downloadFolder);
-            Utils.CopyDirectory(Path.Combine(root, sharedConfig.Config.SharedDir), dst);
+            var src = Path.Combine(root, sharedConfig.Config.SharedDir);
+            Console.WriteLine($"Copying: {src} to: {dst}");
+            Utils.CopyDirectory(src, dst);
             // Combine the two, if there are two
             if (data.TryGetValue(SupportedPropertiesCommand.AdditionalFiles, out var elemDep))
             {
-                CopyAdditionalData(elemDep, root, dst, sharedConfig.Config.SharedDir);
+                CopyAdditionalData(elemDep, root, dst);
             }
             if (sharedConfig.Config.Info.AdditionalData.TryGetValue(SupportedPropertiesCommand.AdditionalFiles, out var elemConfig))
             {
-                CopyAdditionalData(elemConfig, root, dst, sharedConfig.Config.SharedDir);
+                CopyAdditionalData(elemConfig, root, dst);
             }
         }
 
@@ -352,7 +353,6 @@ namespace QPM
                 {
                     throw new DependencyException($"Could not resolve dependency: {resolved.conf.Config.Info.Id}! Downloaded config does not match obtained config!");
                 }
-                Console.WriteLine($"Copying to: {downloadFolder}");
                 CopyTo(downloadFolder, myConfig, resolved.conf, resolved.data);
             }
             else
