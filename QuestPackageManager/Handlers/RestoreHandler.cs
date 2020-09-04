@@ -169,8 +169,10 @@ namespace QuestPackageManager
                     || kvp.Key.Id is null
                     || kvp.Key.VersionRange is null)
                     return true;
-                var (_, version) = sharedConfig.RestoredDependencies.Find(p => p.id == kvp.Key.Id.ToUpperInvariant());
-                return !kvp.Key.VersionRange.IsSatisfied(version);
+                var pair = sharedConfig.RestoredDependencies.Find(p => p.id == kvp.Key.Id.ToUpperInvariant());
+                if (pair != default((string, SemVer.Version)))
+                    return !kvp.Key.VersionRange.IsSatisfied(pair.version);
+                return true;
             });
 
             foreach (var kvp in unrestored)

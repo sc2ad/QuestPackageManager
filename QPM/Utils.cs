@@ -74,15 +74,16 @@ namespace QPM
 
         public static void DeleteTempDir()
         {
-            var outter = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), Assembly.GetExecutingAssembly().GetName().Name);
+            var outter = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), Assembly.GetExecutingAssembly().GetName().Name + "_Temp");
             DeleteDirectory(outter);
         }
 
         public static string GetTempDir()
         {
-            var outter = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), Assembly.GetExecutingAssembly().GetName().Name);
-            if (!Directory.Exists(outter))
-                Directory.CreateDirectory(outter);
+            var outter = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), Assembly.GetExecutingAssembly().GetName().Name + "_Temp");
+            var info = Directory.CreateDirectory(outter);
+            if (info.Attributes.HasFlag(FileAttributes.ReadOnly))
+                info.Attributes &= ~FileAttributes.ReadOnly;
             return outter;
         }
 

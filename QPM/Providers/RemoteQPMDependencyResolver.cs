@@ -57,7 +57,7 @@ namespace QPM
             return false;
         }
 
-        private void HandleGithubLink(Uri url, in SharedConfig sharedConfig, in Dictionary<string, JsonElement> data, string downloadFolder)
+        private void HandleGithubLink(string url, in SharedConfig sharedConfig, in Dictionary<string, JsonElement> data, string downloadFolder)
         {
             // If we have a github link, we need to create an archive download link
             // We actually want to clone so we can get our submodules
@@ -80,7 +80,7 @@ namespace QPM
             // git clone (url + .git), checout correct branch, and initialize submodules
             if (!DependencyCached(downloadFolder, sharedConfig))
             {
-                Console.WriteLine($"Trying to clone from: {url}.git");
+                Console.WriteLine($"Trying to clone from: {url}.git to: {downloadFolder}");
                 Repository.Clone(url + ".git", downloadFolder, new CloneOptions { BranchName = branchName, RecurseSubmodules = true });
             }
         }
@@ -263,7 +263,7 @@ namespace QPM
                 else
                 {
                     // We have to download
-                    Console.WriteLine($"Downloading so from: {soLink}");
+                    Console.WriteLine($"Downloading so from: {soLink} to: {tempLoc}");
                     client.DownloadFile(soLink, tempLoc);
                     File.Copy(tempLoc, fileLoc);
                 }
@@ -337,7 +337,7 @@ namespace QPM
                 if (IsGithubLink(url))
                 {
                     // Attempt to handle the github link by cloning {url}.git and all submodules
-                    HandleGithubLink(url, resolved.conf, resolved.data, downloadFolder);
+                    HandleGithubLink(url.ToString().TrimEnd('/'), resolved.conf, resolved.data, downloadFolder);
                 }
                 else
                 {
@@ -352,6 +352,7 @@ namespace QPM
                 {
                     throw new DependencyException($"Could not resolve dependency: {resolved.conf.Config.Info.Id}! Downloaded config does not match obtained config!");
                 }
+                Console.WriteLine($"Copying to: {downloadFolder}");
                 CopyTo(downloadFolder, myConfig, resolved.conf, resolved.data);
             }
             else

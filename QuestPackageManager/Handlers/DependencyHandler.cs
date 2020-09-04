@@ -58,6 +58,9 @@ namespace QuestPackageManager
             {
                 conf.Dependencies.Add(dep);
             }
+            var shared = configProvider.GetSharedConfig();
+            if (shared != null)
+                shared.Config = conf;
             OnConfigDependencyAdded?.Invoke(this, conf, dep, existing != null);
             configProvider.Commit();
             // Perform additional modification
@@ -89,6 +92,9 @@ namespace QuestPackageManager
                 // This happens only after OnDependencyRemoved occurrs, ensuring that throws will happen properly
                 // No need to commit unless we actually changed the config with a successful removal
                 // We commit this change to both our config and shared config objects.
+                var shared = configProvider.GetSharedConfig();
+                if (shared != null)
+                    shared.Config = conf;
                 configProvider.Commit();
             }
             return result;

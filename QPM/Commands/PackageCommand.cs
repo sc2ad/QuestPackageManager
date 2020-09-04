@@ -161,9 +161,11 @@ namespace QPM.Commands
                 if (string.IsNullOrEmpty(Id))
                     throw new ArgumentException("Id for 'package edit-extra' cannot be null or empty!");
                 var cfg = Program.configProvider.GetConfig();
+                var sharedCfg = Program.configProvider.GetSharedConfig();
                 var createdDoc = JsonDocument.Parse($"\"{Value}\"");
                 var elem = createdDoc.RootElement;
                 cfg.Info.AdditionalData[Id] = elem;
+                sharedCfg.Config.Info.AdditionalData[Id] = elem;
                 Program.configProvider.Commit();
                 Console.WriteLine($"Changed package additional info: {Id} to: {Value}");
                 Utils.WriteSuccess();

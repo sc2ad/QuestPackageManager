@@ -59,7 +59,7 @@ namespace QPM
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.Message);
+                Console.WriteLine(e);
                 Utils.WriteFail();
             }
             return -1;

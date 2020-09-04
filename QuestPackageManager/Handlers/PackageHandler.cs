@@ -43,9 +43,11 @@ namespace QuestPackageManager
             var conf = configProvider.GetConfig(true);
             if (conf is null)
                 throw new ConfigException(Resources.ConfigNotCreated);
-
+            var shared = configProvider.GetSharedConfig();
             var tmp = conf.Info;
             conf.Info = info;
+            if (shared != null && shared.Config != null)
+                shared.Config.Info = info;
             // Call extra modification as necessary
             try
             {
@@ -54,6 +56,8 @@ namespace QuestPackageManager
             catch
             {
                 conf.Info = tmp;
+                if (shared != null && shared.Config != null)
+                    shared.Config.Info = tmp;
                 throw;
             }
             configProvider.Commit();
@@ -72,8 +76,11 @@ namespace QuestPackageManager
                 throw new ConfigException(Resources.ConfigNotFound);
             if (conf.Info is null)
                 throw new ConfigException(Resources.ConfigInfoIsNull);
+            var shared = configProvider.GetSharedConfig();
             var tmp = conf.Info.Url;
             conf.Info.Url = url;
+            if (shared != null && shared.Config != null && shared.Config.Info != null)
+                shared.Config.Info.Url = url;
             try
             {
                 OnConfigUrlChanged?.Invoke(this, conf, url);
@@ -81,6 +88,8 @@ namespace QuestPackageManager
             catch
             {
                 conf.Info.Url = tmp;
+                if (shared != null && shared.Config != null && shared.Config.Info != null)
+                    shared.Config.Info.Url = tmp;
                 throw;
             }
             configProvider.Commit();
@@ -94,8 +103,11 @@ namespace QuestPackageManager
                 throw new ConfigException(Resources.ConfigNotFound);
             if (conf.Info is null)
                 throw new ConfigException(Resources.ConfigInfoIsNull);
+            var shared = configProvider.GetSharedConfig();
             var tmp = conf.Info.Name;
             conf.Info.Name = name;
+            if (shared != null && shared.Config != null && shared.Config.Info != null)
+                shared.Config.Info.Name = name;
             try
             {
                 OnConfigNameChanged?.Invoke(this, conf, name);
@@ -103,6 +115,8 @@ namespace QuestPackageManager
             catch
             {
                 conf.Info.Name = tmp;
+                if (shared != null && shared.Config != null && shared.Config.Info != null)
+                    shared.Config.Info.Name = tmp;
                 throw;
             }
             configProvider.Commit();
@@ -118,8 +132,11 @@ namespace QuestPackageManager
                 throw new ConfigException(Resources.ConfigNotFound);
             if (conf.Info is null)
                 throw new ConfigException(Resources.ConfigInfoIsNull);
+            var shared = configProvider.GetSharedConfig();
             var tmp = conf.Info.Id;
             conf.Info.Id = id;
+            if (shared != null && shared.Config != null && shared.Config.Info != null)
+                shared.Config.Info.Id = id;
             // Call extra modification as necessary
             try
             {
@@ -128,6 +145,8 @@ namespace QuestPackageManager
             catch
             {
                 conf.Info.Id = tmp;
+                if (shared != null && shared.Config != null && shared.Config.Info != null)
+                    shared.Config.Info.Id = tmp;
                 throw;
             }
             configProvider.Commit();
@@ -147,9 +166,12 @@ namespace QuestPackageManager
                 throw new ConfigException(Resources.ConfigNotFound);
             if (conf.Info is null)
                 throw new ConfigException(Resources.ConfigInfoIsNull);
+            var shared = configProvider.GetSharedConfig();
             // Call extra modification to config as necessary
             var tmp = conf.Info.Version;
             conf.Info.Version = newVersion;
+            if (shared != null && shared.Config != null && shared.Config.Info != null)
+                shared.Config.Info.Version = newVersion;
             try
             {
                 OnConfigVersionChanged?.Invoke(this, conf, newVersion);
@@ -157,6 +179,8 @@ namespace QuestPackageManager
             catch
             {
                 conf.Info.Version = tmp;
+                if (shared != null && shared.Config != null && shared.Config.Info != null)
+                    shared.Config.Info.Version = tmp;
                 throw;
             }
             configProvider.Commit();
