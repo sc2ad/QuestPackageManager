@@ -37,6 +37,29 @@ namespace QPM
         private const string DownloadGithubUrl = "https://github.com";
         private const string DefaultBranch = "master";
 
+        private bool _gotMk = false;
+        private AndroidMk _cachedMk;
+
+        private AndroidMk GetMk()
+        {
+            if (!_gotMk)
+            {
+                _cachedMk = androidMkProvider.GetFile();
+                _gotMk = true;
+            }
+            return _cachedMk;
+        }
+
+        internal void OnRestore(RestoreHandler self, Dictionary<RestoredDependencyPair, SharedConfig> deps, Dictionary<string, (Dictionary<string, JsonElement> data, SharedConfig conf)> uniques) => Complete();
+
+        internal void Complete()
+        {
+            // Write Android.mk file
+            var val = GetMk();
+            if (val != null)
+                androidMkProvider.SerializeFile(val);
+        }
+
         private bool IsGithubLink(Uri uri) => uri.AbsoluteUri.StartsWith(DownloadGithubUrl);
 
         private bool DependencyCached(string downloadFolder, in SharedConfig dependencyConfig)
@@ -178,6 +201,7 @@ namespace QPM
             File.Delete(downloadLoc);
         }
 
+        // TODO: Add SharedConfig parameter
         public void ResolveDependency(in Config myConfig, in RestoredDependencyPair pair)
         {
             var sharedConfig = GetSharedConfig(pair);
@@ -279,7 +303,8 @@ namespace QPM
             // It needs a new module
             // It needs to set some stuff on that new module
             // It needs to use that new module in main build
-            var mk = androidMkProvider.GetFile();
+
+            var mk = GetMk();
             if (mk != null)
             {
                 var module = new Module
@@ -309,7 +334,11 @@ namespace QPM
                     if (sharedLib < 0)
                         main.SharedLibs.Add(module.Id);
                     else
+                    {
+                        // If we find a matching module, we are actually going to DELETE it and then ADD IT BACK.
+                        // Yes.
                         main.SharedLibs[sharedLib] = module.Id;
+                    }
                 }
                 // TODO: Probably a stupid check, but should be backed up (?) so should be more or less ok?
                 // For matching modules with names: beatsaber-hook_0_3_0 for replacing with beatsaber-hook_0_4_4
@@ -324,7 +353,6 @@ namespace QPM
                     mk.Modules[existing].Src = module.Src;
                     mk.Modules[existing].ExportIncludes = module.ExportIncludes;
                 }
-                androidMkProvider.SerializeFile(mk);
             }
         }
 

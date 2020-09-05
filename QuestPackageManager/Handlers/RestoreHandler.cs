@@ -60,32 +60,23 @@ namespace QuestPackageManager
                 throw new DependencyException($"Dependency unmet! Want: {d.VersionRange} got: {depConfig.Config.Info.Version} for: {d.Id}");
             if (pair.Version != null && pair.Version != depConfig.Config.Info.Version)
                 throw new ConfigException($"Wanted specific version: {pair.Version} but got: {depConfig.Config.Info.Version} for: {d.Id}");
-            // Add our mapping from dependency to config
-            myDependencies.Add(new RestoredDependencyPair { Dependency = d, Version = depConfig.Config.Info.Version }, depConfig);
-            // Otherwise, we iterate over all of the config's dependencies
-            foreach (var innerD in depConfig.Config.Dependencies)
+            if (myDependencies.Keys.FirstOrDefault(pair => pair.Dependency != null
+                && d.Id.Equals(pair.Dependency.Id, StringComparison.OrdinalIgnoreCase)
+                && pair.Version == depConfig.Config.Info.Version) is null)
             {
-                if (innerD.Id is null)
-                    throw new ConfigException($"A dependency in config for: {depConfig.Config.Info.Id} version: {depConfig.Config.Info.Version} has a null ID!");
-                // For each of the config's dependencies, get the restored dependency for it
-                var restoredDeps = depConfig.RestoredDependencies.FindAll(dp => innerD.Id.Equals(dp.Dependency!.Id, StringComparison.OrdinalIgnoreCase));
-                if (restoredDeps.Count == 0)
-                {
-                    // If we have no RestoredDependencies that match, collect.
-                    CollectDependencies(thisId, ref myDependencies, new RestoredDependencyPair { Dependency = innerD });
-                }
-
-                foreach (var restoredD in restoredDeps)
-                {
-                    // First, see if we have exactly this ID, version already.
-                    // If we do, no point in collecting it again
-                    if (myDependencies.Keys.FirstOrDefault(k => restoredD.Dependency!.Id!.Equals(k.Dependency!.Id, StringComparison.OrdinalIgnoreCase) && restoredD.Version == k.Version) is null)
-                    {
-                        // Collect dependencies for this specific restored dependency pair
-                        CollectDependencies(thisId, ref myDependencies, restoredD!);
-                    }
-                }
-                // Otherwise, the inner dependency already exists and has a config.
+                // If there is no exactly matching key:
+                // Add our mapping from dependency to config
+                myDependencies.Add(new RestoredDependencyPair { Dependency = d, Version = depConfig.Config.Info.Version }, depConfig);
+            }
+            // Otherwise, we iterate over all of the config's RESTORED dependencies
+            // That is, all of the dependencies that we used to actually build this
+            foreach (var innerD in depConfig.RestoredDependencies)
+            {
+                if (innerD.Dependency is null || innerD.Version is null)
+                    throw new ConfigException($"A restored dependency in config for: {depConfig.Config.Info.Id} version: {depConfig.Config.Info.Version} has a null dependency or version property!");
+                // For each of the config's dependencies, collect all of the restored dependencies for it,
+                // if we have no RestoredDependencies that match the ID, VersionRange, and Version already (since those would be the same).
+                CollectDependencies(thisId, ref myDependencies, innerD);
                 // We can actually take it easy here, we only need to COLLECT our dependencies, we don't need to COLLAPSE them.
             }
             // When we are done, myDependencies should contain a mapping of ALL of our dependencies (recursively) mapped to their SharedConfigs.
@@ -199,9 +190,11 @@ namespace QuestPackageManager
                 // For each of the (non-unique) dependencies, resolve each one.
                 // However, we only want to HEADER resolve the unique dependencies
                 dependencyResolver.ResolveDependency(config, kvp.Key);
-                var key = kvp.Key.Dependency!.Id!.ToUpperInvariant();
-                dependencyResolver.ResolveUniqueDependency(config, collapsed[key]);
-                sharedConfig.RestoredDependencies.Add(new RestoredDependencyPair { Dependency = kvp.Key.Dependency, Version = collapsed[key]!.conf.Config!.Info!.Version });
+                sharedConfig.RestoredDependencies.Add(kvp.Key);
+            }
+            foreach (var val in collapsed.Values)
+            {
+                dependencyResolver.ResolveUniqueDependency(config, val);
             }
             // Perform additional modification here
             OnRestore?.Invoke(this, myDependencies, collapsed);

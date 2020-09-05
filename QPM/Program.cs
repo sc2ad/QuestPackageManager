@@ -15,7 +15,7 @@ using System.Threading.Tasks;
 namespace QPM
 {
     [Command("qpm", Description = "Quest package manager")]
-    [Subcommand(typeof(PackageCommand), typeof(DependencyCommand), typeof(RestoreCommand), typeof(PublishCommand), typeof(SupportedPropertiesCommand), typeof(CacheCommand), typeof(ClearCommand))]
+    [Subcommand(typeof(PackageCommand), typeof(DependencyCommand), typeof(RestoreCommand), typeof(CollectCommand), typeof(CollapseCommand), typeof(PublishCommand), typeof(SupportedPropertiesCommand), typeof(CacheCommand), typeof(ClearCommand))]
     internal class Program
     {
         internal const string PackageFileName = "qpm.json";
@@ -52,6 +52,8 @@ namespace QPM
             PackageHandler.OnVersionChanged += PackageHandler_OnVersionChanged;
             PackageHandler.OnNameChanged += PackageHandler_OnNameChanged;
             DependencyHandler.OnDependencyRemoved += DependencyHandler_OnDependencyRemoved;
+            // TODO: AKLJSHFJKGHDKJ
+            RestoreHandler.OnRestore += (resolver as RemoteQPMDependencyResolver).OnRestore;
 
             try
             {
@@ -59,6 +61,8 @@ namespace QPM
             }
             catch (Exception e)
             {
+                Console.WriteLine(e.Message);
+                Console.WriteLine();
                 Console.WriteLine(e);
                 Utils.WriteFail();
             }
