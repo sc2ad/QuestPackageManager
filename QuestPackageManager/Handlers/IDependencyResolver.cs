@@ -10,9 +10,9 @@ namespace QuestPackageManager
 {
     public interface IDependencyResolver
     {
-        public SharedConfig? GetSharedConfig(Dependency dependency);
+        public SharedConfig? GetSharedConfig(RestoredDependencyPair pairWithVersion);
 
-        public void ResolveDependency(in Config myConfig, in Dependency dependency);
+        public void ResolveDependency(in Config myConfig, in RestoredDependencyPair dependency);
 
         public void ResolveUniqueDependency(in Config myConfig, in (Dictionary<string, JsonElement> data, SharedConfig conf) resolved);
 

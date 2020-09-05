@@ -28,7 +28,7 @@ namespace QuestPackageManager.Data
 
     public class RestoredDependencyPair
     {
-        public string? Id { get; set; }
+        public Dependency? Dependency { get; set; }
 
         [JsonConverter(typeof(SemVerConverter))]
         public SemVer.Version? Version { get; set; }

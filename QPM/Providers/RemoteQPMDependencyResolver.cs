@@ -87,8 +87,9 @@ namespace QPM
             }
         }
 
-        public SharedConfig GetSharedConfig(Dependency dependency)
+        public SharedConfig GetSharedConfig(RestoredDependencyPair pair)
         {
+            var dependency = pair.Dependency!;
             if (cached.TryGetValue(dependency, out var conf))
                 return conf;
             if (!dependency.AdditionalData.TryGetValue(SupportedPropertiesCommand.LocalPath, out var localE))
@@ -96,7 +97,7 @@ namespace QPM
                 // Try to download dependency
                 try
                 {
-                    conf = api.GetLatestConfig(dependency);
+                    conf = api.GetLatestConfig(dependency, pair.Version);
                 }
                 catch (WebException)
                 {
@@ -177,10 +178,12 @@ namespace QPM
             File.Delete(downloadLoc);
         }
 
-        public void ResolveDependency(in Config myConfig, in Dependency dependency)
+        public void ResolveDependency(in Config myConfig, in RestoredDependencyPair pair)
         {
-            if (!cached.TryGetValue(dependency, out var sharedConfig))
-                sharedConfig = GetSharedConfig(dependency);
+            var sharedConfig = GetSharedConfig(pair);
+            if (sharedConfig is null)
+                throw new DependencyException($"Could not get shared config for dependency pair: {pair.Dependency.Id} version range: {pair.Dependency.VersionRange} specific version: {pair.Version}");
+            var dependency = pair.Dependency;
 
             if (sharedConfig.Config.Info.AdditionalData.TryGetValue(SupportedPropertiesCommand.HeadersOnly, out var headerE) && headerE.GetBoolean())
             {

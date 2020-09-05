@@ -63,11 +63,11 @@ namespace QPM
             return JsonSerializer.Deserialize<ModPair>(s);
         }
 
-        public ModPair GetLatest(Dependency d) => GetLatest(d.Id, d.VersionRange);
+        public ModPair GetLatest(Dependency d, SemVer.Version specific = null) => specific != null ? GetLatest(d.Id, new SemVer.Range("=" + specific)) : GetLatest(d.Id, d.VersionRange);
 
-        public SharedConfig GetLatestConfig(Dependency d)
+        public SharedConfig GetLatestConfig(Dependency d, SemVer.Version specific = null)
         {
-            var pair = GetLatest(d);
+            var pair = GetLatest(d, specific);
             return GetConfig(pair.Id, pair.Version);
         }
 

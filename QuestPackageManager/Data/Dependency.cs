@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace QuestPackageManager.Data
 {
-    public class Dependency
+    public class Dependency : IEquatable<Dependency>
     {
         public string? Id { get; set; }
 
@@ -26,5 +27,20 @@ namespace QuestPackageManager.Data
         private Dependency()
         {
         }
+
+        public bool Equals([AllowNull] Dependency other)
+        {
+            if (other is null)
+                return false;
+            return Id == other.Id
+                && VersionRange == other.VersionRange
+                && AdditionalData.Count == other.AdditionalData.Count
+                && !AdditionalData.Keys.Any(k => !other.AdditionalData.ContainsKey(k))
+                && !other.AdditionalData.Keys.Any(k => !AdditionalData.ContainsKey(k));
+        }
+
+        public override bool Equals(object? obj) => Equals(obj as Dependency);
+
+        public override int GetHashCode() => string.GetHashCode(Id, StringComparison.OrdinalIgnoreCase) * 19 + VersionRange?.GetHashCode() * 59 + AdditionalData.GetHashCode() ?? 0;
     }
 }
