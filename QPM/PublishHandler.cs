@@ -32,7 +32,7 @@ namespace QPM
             {
                 foreach (var d in sharedConfig.Config.Dependencies)
                 {
-                    if (!sharedConfig.RestoredDependencies.Exists(p => p.Id == d.Id!.ToUpperInvariant() && d.VersionRange.IsSatisfied(p.Version)))
+                    if (!sharedConfig.RestoredDependencies.Exists(p => p.Dependency!.Id.Equals(d.Id!, StringComparison.OrdinalIgnoreCase) && d.VersionRange.IsSatisfied(p.Version)))
                         throw new DependencyException($"Not all dependencies are restored or of correct versions! Restore before attempting to publish! Missing or mismatch dependency: {d.Id} with range: {d.VersionRange}");
                 }
             }
