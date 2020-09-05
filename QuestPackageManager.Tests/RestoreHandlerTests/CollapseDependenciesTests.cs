@@ -27,7 +27,7 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
             var deps = restorer.CollectDependencies();
             var result = RestoreHandler.CollapseDependencies(deps);
             foreach (var kvp in deps)
-                Assert.True(result.TryGetValue(kvp.Key.Id!.ToUpperInvariant(), out var val) && kvp.Value == val.conf);
+                Assert.True(result.TryGetValue(kvp.Key.Dependency.Id!.ToUpperInvariant(), out var val) && kvp.Value == val.conf);
         }
 
         [Fact]
@@ -50,7 +50,7 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
             var deps = restorer.CollectDependencies();
             var result = RestoreHandler.CollapseDependencies(deps);
             foreach (var kvp in deps)
-                Assert.True(result.TryGetValue(kvp.Key.Id!.ToUpperInvariant(), out var val) && kvp.Value == val.conf);
+                Assert.True(result.TryGetValue(kvp.Key.Dependency.Id!.ToUpperInvariant(), out var val) && kvp.Value == val.conf);
         }
 
         [Fact]

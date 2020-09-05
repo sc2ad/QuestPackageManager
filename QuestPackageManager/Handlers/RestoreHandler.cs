@@ -70,7 +70,11 @@ namespace QuestPackageManager
                 // For each of the config's dependencies, get the restored dependency for it
                 var restoredDeps = depConfig.RestoredDependencies.FindAll(dp => innerD.Id.Equals(dp.Dependency!.Id, StringComparison.OrdinalIgnoreCase));
                 if (restoredDeps.Count == 0)
-                    throw new ConfigException($"Dependency: {innerD.Id} was not restored in config for: {depConfig.Config.Info.Id} version: {depConfig.Config.Info.Version}!");
+                {
+                    // If we have no RestoredDependencies that match, collect.
+                    CollectDependencies(thisId, ref myDependencies, new RestoredDependencyPair { Dependency = innerD });
+                }
+
                 foreach (var restoredD in restoredDeps)
                 {
                     // First, see if we have exactly this ID, version already.

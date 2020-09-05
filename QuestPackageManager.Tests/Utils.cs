@@ -28,8 +28,8 @@ namespace QuestPackageManager.Tests
         internal static Mock<IDependencyResolver> GetUriHandler(Dictionary<Dependency, SharedConfig> map)
         {
             var mock = new Mock<IDependencyResolver>();
-            mock.Setup(m => m.GetSharedConfig(It.IsAny<Dependency>())).Returns<Dependency>(d => map[d]);
-            mock.Setup(m => m.ResolveDependency(It.IsAny<Config>(), It.IsAny<Dependency>()));
+            mock.Setup(m => m.GetSharedConfig(It.IsAny<RestoredDependencyPair>())).Returns<RestoredDependencyPair>(d => map[d.Dependency]);
+            mock.Setup(m => m.ResolveDependency(It.IsAny<Config>(), It.IsAny<RestoredDependencyPair>()));
             return mock;
         }
     }

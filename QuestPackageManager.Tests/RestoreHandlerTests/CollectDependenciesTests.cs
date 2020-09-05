@@ -26,8 +26,10 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
             // Should not throw
             var deps = restorer.CollectDependencies();
             // Ensure we still only have one dependency and nothing has changed
-            var checkD = deps.Keys.SingleOrDefault();
-            Assert.True(checkD != default);
+            var item = deps.Keys.SingleOrDefault();
+            Assert.True(item != null);
+            var checkD = item.Dependency;
+            Assert.True(checkD != null);
             Assert.True(checkD.Id == dep.Id);
             Assert.True(checkD.VersionRange == dep.VersionRange);
         }
@@ -52,8 +54,8 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
             // We should now have TWO dependencies, one for id and one for id2
             // Order of these dependencies should not matter. They just both need to be in there.
             Assert.True(deps.Count == 2);
-            Assert.NotNull(deps.Keys.FirstOrDefault(d => d.Id == dep.Id && d.VersionRange == dep.VersionRange));
-            Assert.NotNull(deps.Keys.FirstOrDefault(d => d.Id == innerDep.Id && d.VersionRange == innerDep.VersionRange));
+            Assert.NotNull(deps.Keys.FirstOrDefault(d => d.Dependency.Id == dep.Id && d.Dependency.VersionRange == dep.VersionRange));
+            Assert.NotNull(deps.Keys.FirstOrDefault(d => d.Dependency.Id == innerDep.Id && d.Dependency.VersionRange == innerDep.VersionRange));
         }
 
         [Fact]
@@ -80,9 +82,9 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
             var deps = restorer.CollectDependencies();
             // We should now STILL HAVE THREE dependencies, one for "id" and two for "needed"
             Assert.True(deps.Count == 3);
-            Assert.NotNull(deps.Keys.FirstOrDefault(d => d.Id == dep.Id && d.VersionRange == dep.VersionRange));
-            Assert.NotNull(deps.Keys.FirstOrDefault(d => d.Id == otherDep.Id && d.VersionRange == otherDep.VersionRange));
-            Assert.NotNull(deps.Keys.LastOrDefault(d => d.Id == innerDep.Id && d.VersionRange == innerDep.VersionRange));
+            Assert.NotNull(deps.Keys.FirstOrDefault(d => d.Dependency.Id == dep.Id && d.Dependency.VersionRange == dep.VersionRange));
+            Assert.NotNull(deps.Keys.FirstOrDefault(d => d.Dependency.Id == otherDep.Id && d.Dependency.VersionRange == otherDep.VersionRange));
+            Assert.NotNull(deps.Keys.LastOrDefault(d => d.Dependency.Id == innerDep.Id && d.Dependency.VersionRange == innerDep.VersionRange));
         }
 
         [Fact]
@@ -100,7 +102,7 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
             // Should throw a recursive exception (id cannot include id)
             Assert.Throws<DependencyException>(() => restorer.CollectDependencies());
             // Should never have made any GetConfig calls
-            uriHandler.Verify(mocks => mocks.GetSharedConfig(It.IsAny<Dependency>()), Times.Never);
+            uriHandler.Verify(mocks => mocks.GetSharedConfig(It.IsAny<RestoredDependencyPair>()), Times.Never);
         }
 
         [Fact]
@@ -123,8 +125,8 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
             // Should throw a recursive exception (id cannot include id)
             Assert.Throws<DependencyException>(() => restorer.CollectDependencies());
             // Should have tried to get asdf's config
-            uriHandler.Verify(mocks => mocks.GetSharedConfig(dep), Times.Once);
-            uriHandler.Verify(mocks => mocks.GetSharedConfig(innerDep), Times.Never);
+            uriHandler.Verify(mocks => mocks.GetSharedConfig(It.Is<RestoredDependencyPair>(p => p.Dependency == dep)), Times.Once);
+            uriHandler.Verify(mocks => mocks.GetSharedConfig(It.Is<RestoredDependencyPair>(p => p.Dependency == innerDep)), Times.Never);
         }
 
         [Fact]
