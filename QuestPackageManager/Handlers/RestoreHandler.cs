@@ -186,9 +186,11 @@ namespace QuestPackageManager
                     || kvp.Key.Dependency.Id is null
                     || kvp.Key.Dependency.VersionRange is null)
                     return true;
-                var pair = sharedConfig.RestoredDependencies.FindAll(p => p.Dependency != null && kvp.Key.Dependency.Id.Equals(p.Dependency.Id, StringComparison.OrdinalIgnoreCase));
+                if (sharedConfig.RestoredDependencies is null)
+                    return true;
+                var pair = sharedConfig.RestoredDependencies.FindAll(p => p != null && p.Dependency != null && kvp.Key.Dependency.Id.Equals(p.Dependency.Id, StringComparison.OrdinalIgnoreCase));
                 if (pair.Count > 0)
-                    return pair.TrueForAll(p => kvp.Key.Dependency.VersionRange.IsSatisfied(p.Version));
+                    return !pair.TrueForAll(p => p.Version != null && kvp.Key.Dependency.VersionRange.IsSatisfied(p.Version));
                 return true;
             });
 
