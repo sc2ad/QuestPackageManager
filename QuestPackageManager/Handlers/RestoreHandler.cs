@@ -18,7 +18,7 @@ namespace QuestPackageManager
 
         public event Action<RestoreHandler, Dictionary<RestoredDependencyPair, SharedConfig>>? OnDependenciesCollected;
 
-        public event Action<RestoreHandler, Dictionary<RestoredDependencyPair, SharedConfig>, Dictionary<string, (Dictionary<string, JsonElement> data, SharedConfig conf)>>? OnRestore;
+        public event Action<RestoreHandler, Dictionary<RestoredDependencyPair, SharedConfig>, Dictionary<RestoredDependencyPair, SharedConfig>>? OnRestore;
 
         public RestoreHandler(IConfigProvider configProvider, IDependencyResolver dependencyResolver)
         {
@@ -60,13 +60,14 @@ namespace QuestPackageManager
                 throw new DependencyException($"Dependency unmet! Want: {d.VersionRange} got: {depConfig.Config.Info.Version} for: {d.Id}");
             if (pair.Version != null && pair.Version != depConfig.Config.Info.Version)
                 throw new ConfigException($"Wanted specific version: {pair.Version} but got: {depConfig.Config.Info.Version} for: {d.Id}");
-            if (myDependencies.Keys.FirstOrDefault(pair => pair.Dependency != null
-                && d.Id.Equals(pair.Dependency.Id, StringComparison.OrdinalIgnoreCase)
-                && pair.Version == depConfig.Config.Info.Version) is null)
+            var toAdd = new RestoredDependencyPair { Dependency = d, Version = depConfig.Config.Info.Version };
+            if (!myDependencies.ContainsKey(toAdd))
             {
-                // If there is no exactly matching key:
-                // Add our mapping from dependency to config
-                myDependencies.Add(new RestoredDependencyPair { Dependency = d, Version = depConfig.Config.Info.Version }, depConfig);
+                // We need to double check here, just to make sure we don't accidentally add when we literally have a potential match:
+                if (myDependencies.Keys.FirstOrDefault(item => toAdd.Dependency.Id.Equals(item.Dependency!.Id, StringComparison.OrdinalIgnoreCase) && toAdd.Version == item.Version) is null)
+                    // If there is no exactly matching key:
+                    // Add our mapping from dependency to config
+                    myDependencies.Add(toAdd, depConfig);
             }
             // Otherwise, we iterate over all of the config's RESTORED dependencies
             // That is, all of the dependencies that we used to actually build this
@@ -103,12 +104,12 @@ namespace QuestPackageManager
         /// </summary>
         /// <param name="deps">Mapping to collapse</param>
         /// <returns>A mapping of unique uppercased dependency IDs to <see cref="SharedConfig"/></returns>
-        public static Dictionary<string, (Dictionary<string, JsonElement> data, SharedConfig conf)> CollapseDependencies(Dictionary<RestoredDependencyPair, SharedConfig> deps)
+        public static Dictionary<RestoredDependencyPair, SharedConfig> CollapseDependencies(Dictionary<RestoredDependencyPair, SharedConfig> deps)
         {
             if (deps is null)
                 throw new ArgumentNullException(nameof(deps));
-            var uniqueDeps = new Dictionary<string, List<(Dependency dep, SharedConfig conf)>>();
-            var collapsed = new Dictionary<string, (Dictionary<string, JsonElement> data, SharedConfig conf)>();
+            var uniqueDeps = new Dictionary<string, List<(RestoredDependencyPair dep, SharedConfig conf)>>();
+            var collapsed = new Dictionary<RestoredDependencyPair, SharedConfig>();
             // For each Dependency, we want to find all other dependencies that have the same ID
             foreach (var dep in deps)
             {
@@ -116,39 +117,45 @@ namespace QuestPackageManager
                     continue;
                 var id = dep.Key.Dependency.Id;
                 if (uniqueDeps.TryGetValue(id.ToUpperInvariant(), out var matchingDeps))
-                    matchingDeps.Add((dep.Key.Dependency, dep.Value));
+                    matchingDeps.Add((dep.Key, dep.Value));
                 else
-                    uniqueDeps.Add(id.ToUpperInvariant(), new List<(Dependency dep, SharedConfig conf)> { (dep.Key.Dependency, dep.Value) });
+                    uniqueDeps.Add(id.ToUpperInvariant(), new List<(RestoredDependencyPair dep, SharedConfig conf)> { (dep.Key, dep.Value) });
             }
             foreach (var p in uniqueDeps)
             {
                 if (p.Value.Count == 0)
                     continue;
-                var intersection = p.Value[0].dep.VersionRange;
+                var depToAdd = new Dependency(p.Value[0].dep.Dependency!.Id!, p.Value[0].dep.Dependency!.VersionRange!);
+                foreach (var kvp in p.Value[0].dep.Dependency!.AdditionalData)
+                    depToAdd.AdditionalData.Add(kvp.Key, kvp.Value);
                 var confToAdd = p.Value[0].conf;
                 // Also collapse the additional data into a single dependency's additional data
-                var data = new Dictionary<string, JsonElement>();
-                foreach (var d in p.Value[0].dep.AdditionalData)
-                    data.Add(d.Key, d.Value);
                 for (int i = 1; i < p.Value.Count; i++)
                 {
                     // If we have multiple matching dependencies, intersect across all of them.
-                    var val = p.Value[i].dep;
+                    var val = p.Value[i].dep.Dependency!;
                     if (val.VersionRange is null)
                         throw new ConfigException($"Dependency: {val.Id} has a null {nameof(Dependency.VersionRange)}!");
-                    var tmp = val.VersionRange.Intersect(intersection);
+                    var tmp = val.VersionRange.Intersect(depToAdd.VersionRange);
                     // Now take the intersection, if it is 0.0.0, say "uhoh"
                     if (tmp.ToString() == "<0.0.0")
-                        throw new DependencyException($"Dependency: {val.Id} needs version range: {val.VersionRange} which does not intersect: {intersection}");
+                        throw new DependencyException($"Dependency: {val.Id} needs version range: {val.VersionRange} which does not intersect: {depToAdd.VersionRange}");
                     // Now we need to check to see if the current config is of a greater version than the config we want to add
                     // If it is, set it
                     // We can assume SharedConfig has no null fields from CollectDependencies
                     if (p.Value[i].conf.Config?.Info?.Version > confToAdd.Config?.Info?.Version)
                         confToAdd = p.Value[i].conf;
-                    intersection = tmp;
+                    // Copy additional data
+                    foreach (var pair in p.Value[i].dep.Dependency!.AdditionalData)
+                        depToAdd.AdditionalData.Add(pair.Key, pair.Value);
+                    depToAdd.VersionRange = tmp;
                 }
-                // Add uppercase ID to collapsed mapping
-                collapsed.Add(p.Key, (data, confToAdd));
+                // Add to collapsed mapping
+                collapsed.Add(new RestoredDependencyPair
+                {
+                    Dependency = depToAdd,
+                    Version = confToAdd.Config!.Info!.Version
+                }, confToAdd);
             }
             return collapsed;
         }
@@ -192,10 +199,8 @@ namespace QuestPackageManager
                 dependencyResolver.ResolveDependency(config, kvp.Key);
                 sharedConfig.RestoredDependencies.Add(kvp.Key);
             }
-            foreach (var val in collapsed.Values)
-            {
+            foreach (var val in collapsed)
                 dependencyResolver.ResolveUniqueDependency(config, val);
-            }
             // Perform additional modification here
             OnRestore?.Invoke(this, myDependencies, collapsed);
             configProvider.Commit();

@@ -1,4 +1,5 @@
 ﻿using McMaster.Extensions.CommandLineUtils;
+using QuestPackageManager;
 using QuestPackageManager.Data;
 using System;
 using System.Collections.Generic;
@@ -20,6 +21,7 @@ namespace QPM.Commands
             Utils.CreateDirectory(Path.Combine(Environment.CurrentDirectory, config.SharedDir));
             Utils.CreateDirectory(Path.Combine(Environment.CurrentDirectory, config.DependenciesDir));
             Program.RestoreHandler.Restore();
+            // Write Android.mk
             Utils.WriteSuccess();
         }
     }

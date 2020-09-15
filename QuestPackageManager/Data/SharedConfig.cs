@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using System.Text.Json.Serialization;
@@ -26,11 +27,21 @@ namespace QuestPackageManager.Data
         public List<RestoredDependencyPair> RestoredDependencies { get; private set; } = new List<RestoredDependencyPair>();
     }
 
-    public class RestoredDependencyPair
+    public class RestoredDependencyPair : IEquatable<RestoredDependencyPair>
     {
         public Dependency? Dependency { get; set; }
 
         [JsonConverter(typeof(SemVerConverter))]
         public SemVer.Version? Version { get; set; }
+
+        public static bool operator ==(RestoredDependencyPair? left, RestoredDependencyPair? right) => (left?.Equals(right)) ?? false;
+
+        public static bool operator !=(RestoredDependencyPair? left, RestoredDependencyPair? right) => (left?.Equals(right)) ?? true;
+
+        public override bool Equals(object? obj) => obj is RestoredDependencyPair d ? Equals(d) : false;
+
+        public bool Equals([AllowNull] RestoredDependencyPair other) => other?.Dependency == Dependency && other?.Version == Version;
+
+        public override int GetHashCode() => (Dependency?.GetHashCode() + 59 * Version?.GetHashCode()).GetValueOrDefault();
     }
 }

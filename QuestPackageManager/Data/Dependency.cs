@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.VisualBasic.CompilerServices;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -39,8 +40,12 @@ namespace QuestPackageManager.Data
                 && !other.AdditionalData.Keys.Any(k => !AdditionalData.ContainsKey(k));
         }
 
+        public static bool operator ==(Dependency? left, Dependency? right) => (left?.Equals(right)) ?? false;
+
+        public static bool operator !=(Dependency? left, Dependency? right) => (left?.Equals(right)) ?? true;
+
         public override bool Equals(object? obj) => Equals(obj as Dependency);
 
-        public override int GetHashCode() => string.GetHashCode(Id, StringComparison.OrdinalIgnoreCase) * 19 + VersionRange?.GetHashCode() * 59 + AdditionalData.GetHashCode() ?? 0;
+        public override int GetHashCode() => string.GetHashCode(Id, StringComparison.OrdinalIgnoreCase) * 19 + VersionRange?.GetHashCode() * 59 + AdditionalData.Count ?? 0;
     }
 }
