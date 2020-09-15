@@ -6,46 +6,55 @@ on:
   pull_request:
     branches: [ master ]
 
+env:
+  DOTNET_VERSION: '5.0.100-preview.7.20366.6'
+
 jobs:
   build:
-
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        runtime: ['ubuntu-x64', 'win-x64']
 
     steps:
       - uses: actions/checkout@v2
+      - uses: actions/cache@v2
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ hashFiles('**/packages.lock.json') }}
+          restore-keys: |
+            nuget-
       - name: Setup .NET Core
         uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: '5.0.100-preview.7.20366.6'
+          dotnet-version: ${{ env.DOTNET_VERSION }}
       - name: Install dependencies
         working-directory: ./QPM
         run: dotnet restore
-      - name: Build ubuntu-x64
+      - name: Build ${{ matrix.runtime }}
         working-directory: ./QPM
-        run: dotnet publish -r ubuntu-x64 -c Release
-      - name: Build win-x64
-        working-directory: ./QPM
-        run: dotnet publish -r win-x64 -c Release
-      - name: Artifact Upload ubuntu-x64
+        run: dotnet publish -r ${{ matrix.runtime }} -c Release
+      - name: Artifact Upload ${{ matrix.runtime }}
         uses: actions/upload-artifact@v2
         with:
-          name: QPM-ubuntu-x64
-          path: QPM/bin/Release/net5.0/ubuntu-x64/publish/
-      - name: Artifact Upload win-x64
-        uses: actions/upload-artifact@v2
-        with:
-          name: QPM-win-x64
-          path: QPM/bin/Release/net5.0/win-x64/publish/
-  checks:
+          name: QPM-${{ matrix.runtime }}
+          path: QPM/bin/Release/net5.0/${{ matrix.runtime }}/publish/
 
+  checks:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v2
+      - uses: actions/cache@v2
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ hashFiles('**/packages.lock.json') }}
+          restore-keys: |
+            nuget-
       - name: Setup .NET Core
         uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: '5.0.100-preview.7.20366.6'
+          dotnet-version: ${{ env.DOTNET_VERSION }}
       - name: Install dependencies
         run: dotnet restore
       - name: Build
