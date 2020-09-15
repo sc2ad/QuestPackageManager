@@ -29,8 +29,8 @@ namespace QPM.Commands
             var collapsed = RestoreHandler.CollapseDependencies(outp);
             foreach (var pair in collapsed)
             {
-                Console.WriteLine($"{pair.Key} --> {pair.Value.conf.Config.Info.Version}, {pair.Value.conf.RestoredDependencies.Count} restored dependencies");
-                PrintDependencies("- ", pair.Value.conf);
+                Console.WriteLine($"{PrintRestoredDependency(pair.Key)} (config: {pair.Value.Config.Info.Version}, {pair.Value.RestoredDependencies.Count} restored dependencies)");
+                PrintDependencies("- ", pair.Value);
             }
             Utils.WriteSuccess();
         }

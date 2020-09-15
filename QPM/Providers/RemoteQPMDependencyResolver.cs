@@ -50,7 +50,7 @@ namespace QPM
             return _cachedMk;
         }
 
-        internal void OnRestore(RestoreHandler self, Dictionary<RestoredDependencyPair, SharedConfig> deps, Dictionary<string, (Dictionary<string, JsonElement> data, SharedConfig conf)> uniques) => Complete();
+        internal void OnRestore(RestoreHandler self, Dictionary<RestoredDependencyPair, SharedConfig> deps, Dictionary<RestoredDependencyPair, SharedConfig> uniques) => Complete();
 
         internal void Complete()
         {
@@ -356,43 +356,45 @@ namespace QPM
             }
         }
 
-        public void ResolveUniqueDependency(in Config myConfig, in (Dictionary<string, JsonElement> data, SharedConfig conf) resolved)
+        public void ResolveUniqueDependency(in Config myConfig, KeyValuePair<RestoredDependencyPair, SharedConfig> resolved)
         {
             // When we resolve a unique dependency, we copy over the headers.
             // Otherwise, we simply copy over the .so and call it a day (unless it is header-only)
-            if (!resolved.data.TryGetValue(SupportedPropertiesCommand.LocalPath, out var localE))
+            var data = resolved.Key.Dependency.AdditionalData;
+            var conf = resolved.Value;
+            if (!data.TryGetValue(SupportedPropertiesCommand.LocalPath, out var localE))
             {
                 // If not local, perform remote obtain
 
-                var url = resolved.conf.Config.Info.Url;
+                var url = conf.Config.Info.Url;
                 var outter = Utils.GetTempDir();
-                var downloadFolder = Path.Combine(outter, resolved.conf.Config.Info.Id);
+                var downloadFolder = Path.Combine(outter, conf.Config.Info.Id);
 
                 if (IsGithubLink(url))
                 {
                     // Attempt to handle the github link by cloning {url}.git and all submodules
-                    HandleGithubLink(url.ToString().TrimEnd('/'), resolved.conf, resolved.data, downloadFolder);
+                    HandleGithubLink(url.ToString().TrimEnd('/'), conf, data, downloadFolder);
                 }
                 else
                 {
                     // Attempt to download the file as a zip and extract it
-                    if (!DependencyCached(downloadFolder, resolved.conf))
+                    if (!DependencyCached(downloadFolder, conf))
                         DownloadDependency(downloadFolder, url);
                 }
                 var root = Utils.GetSubdir(downloadFolder);
                 var externalCfgProvider = new LocalConfigProvider(root, Program.PackageFileName, Program.LocalFileName);
                 var externalCfg = externalCfgProvider.GetConfig();
-                if (externalCfg is null || externalCfg.Info is null || resolved.conf.Config.Info.Version != externalCfg.Info.Version || !resolved.conf.Config.Info.Version.Equals(externalCfg.Info.Version))
+                if (externalCfg is null || externalCfg.Info is null || conf.Config.Info.Version != externalCfg.Info.Version || !conf.Config.Info.Version.Equals(externalCfg.Info.Version))
                 {
-                    throw new DependencyException($"Could not resolve dependency: {resolved.conf.Config.Info.Id}! Downloaded config does not match obtained config!");
+                    throw new DependencyException($"Could not resolve dependency: {conf.Config.Info.Id}! Downloaded config does not match obtained config!");
                 }
-                CopyTo(downloadFolder, myConfig, resolved.conf, resolved.data);
+                CopyTo(downloadFolder, myConfig, conf, data);
             }
             else
             {
                 var localPath = localE.GetString();
                 // Copy the localPath folder to myConfig
-                CopyTo(localPath, myConfig, resolved.conf, resolved.data);
+                CopyTo(localPath, myConfig, conf, data);
             }
         }
 
