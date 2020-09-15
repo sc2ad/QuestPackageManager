@@ -299,6 +299,10 @@ namespace QPM
                     File.Copy(tempLoc, fileLoc);
                 }
             }
+            else
+            {
+                Console.WriteLine($"Found existing: {fileLoc} for: {sharedConfig.Config.Info.Id} - version: {sharedConfig.Config.Info.Version}");
+            }
             // Perform modifications to the Android.mk and c_cpp_properties.json as necessary (I don't think c_cpp_properties.json should change, includePath is constant)
             // But Android.mk needs some things changed:
             // It needs a new module
@@ -336,9 +340,16 @@ namespace QPM
                         main.SharedLibs.Add(module.Id);
                     else
                     {
-                        // If we find a matching module, we are actually going to DELETE it and then ADD IT BACK.
-                        // Yes.
-                        main.SharedLibs[sharedLib] = module.Id;
+                        // If we find a matching module, we need to see if our version is higher than it.
+                        // If it is, we overwrite. Otherwise, do nothing.
+                        // Also, if the src matches exactly, we don't have to worry.
+                        var exists = main.SharedLibs[sharedLib];
+                        var version = new SemVer.Version(0, 0, 0);
+                        if (!overrodeName)
+                            version = new SemVer.Version(exists.TrimStart().ReplaceFirst(sharedConfig.Config.Info.Id + "_", "").Replace('_', '.'));
+                        if (version < sharedConfig.Config.Info.Version)
+                            // If the version we want to add is greater than the version already in there, we replace it.
+                            main.SharedLibs[sharedLib] = module.Id;
                     }
                 }
                 // TODO: Probably a stupid check, but should be backed up (?) so should be more or less ok?
@@ -350,9 +361,20 @@ namespace QPM
                 }
                 else
                 {
-                    mk.Modules[existing].Id = module.Id;
-                    mk.Modules[existing].Src = module.Src;
-                    mk.Modules[existing].ExportIncludes = module.ExportIncludes;
+                    // If we find a matching module, we need to see if our version is higher than it.
+                    // If it is, we overwrite. Otherwise, do nothing.
+                    // Also, if the src matches exactly, we don't have to worry.
+                    var exists = mk.Modules[existing];
+                    var version = new SemVer.Version(0, 0, 0);
+                    if (!overrodeName)
+                        version = new SemVer.Version(exists.Id.TrimStart().ReplaceFirst(sharedConfig.Config.Info.Id + "_", "").Replace('_', '.'));
+                    if (version < sharedConfig.Config.Info.Version)
+                    {
+                        // If the version we want to add is greater than the version already in there, we replace it.
+                        exists.Id = module.Id;
+                        exists.Src = module.Src;
+                        exists.ExportIncludes = module.ExportIncludes;
+                    }
                 }
             }
         }
