@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -21,6 +23,33 @@ namespace QPM
         public static void WriteSuccess(string message = "Success!") => WriteMessage(message, ConsoleColor.Green);
 
         public static void WriteFail(string message = "Failed!") => WriteMessage(message, ConsoleColor.Red);
+
+        public static void DirectoryPermissions(string absPath)
+        {
+            ProcessStartInfo startInfo;
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                startInfo = new ProcessStartInfo
+                {
+                    FileName = "cmd.exe",
+                    Arguments = "/C chmod +rw --recursive \"" + absPath + "\"",
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                };
+            }
+            else
+            {
+                startInfo = new ProcessStartInfo
+                {
+                    FileName = "/bin/bash",
+                    Arguments = "-c chmod +rw --recursive \"" + absPath + "\"",
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+            }
+            var proc = Process.Start(startInfo);
+            proc.WaitForExit(1000);
+        }
 
         public static void CreateDirectory(string path)
         {
@@ -89,6 +118,7 @@ namespace QPM
         {
             var outter = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), Assembly.GetExecutingAssembly().GetName().Name + "_Temp");
             CreateDirectory(outter);
+            DirectoryPermissions(outter);
             return outter;
         }
 

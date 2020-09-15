@@ -107,6 +107,7 @@ namespace QPM
                 // This may not always be the case
                 bool recurse = data.ContainsKey(SupportedPropertiesCommand.AdditionalFiles);
                 Repository.Clone(url + ".git", downloadFolder, new CloneOptions { BranchName = branchName, RecurseSubmodules = recurse });
+                Utils.DirectoryPermissions(downloadFolder);
             }
         }
 
