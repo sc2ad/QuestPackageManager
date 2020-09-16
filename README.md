@@ -1,6 +1,6 @@
 # Quest Package Manager
 
-A package manager for making Quest il2cpp mods and libraries
+A package manager for making Quest il2cpp mods and libraries. Commonly acronymized as `QPM` or `qpm`
 
 ## Vocabulary
 
@@ -37,9 +37,29 @@ qpm dependency add "ID" -v "VERSION RANGE"
 
 Which creates a dependency with id: `ID` and version range: `VERSION RANGE`. If `-v` is not specified, version range defaults to `*` (latest available version)
 
-### Restoring from a config file
+### Collect Dependencies
 
-After adding a `dependency`, you must perform a `restore` to properly obtain the `dependency`. Dependencies that are added to your `package` must be resolved in order to ensure a proper build.
+This is primarily a command used to ensure the package's collected dependencies match what you expect.
+
+```bash
+qpm collect
+```
+
+Should print out a listing of dependencies that it resolved. This command does not modify your package at all.
+
+### Collapse Dependencies
+
+This is primarily a command used to ensure the package's collected dependencies are collapsible into something you expect.
+
+```bash
+qpm collapse
+```
+
+Should print out a listing of dependencies similar to [Collapse Dependencies](#collapse-dependencies), but with identical IDs combined.
+
+### Restoring Dependencies
+
+After adding one or more `dependencies`, you must perform a `restore` to properly obtain them. Dependencies that are added to your `package` must be resolved in order to ensure a proper build.
 
 Dependencies are resolved using an external domain, `qpackages.com`. For more information on how to interface with this package index, see the publishing section.
 
@@ -49,34 +69,156 @@ qpm restore
 
 Which restores all dependencies listed in your package from the package index.
 
-Assuming you have dependencies, the following process happens:
+Restore follows the following process:
 
-1. Searches the package index (`qpackages.com`) for any matching ids and versions
-2. Collects all sub dependencies recursively.
-3. Downloads the data from the url in the found package config, caches it in a temporary location (ApplicationData/QPM)
-4. Copies over the `sharedDir` from the dependent package to your package's `externDir`
-5. Downloads a .so file from the dependent package's `soLink` (if it is not `headersOnly`), caches it in a temporary location (ApplicationData/QPM)
-6. Performs modifications to any local `Android.mk`, `.vscode/c_cpp_properties.json`, and `bmbfmod.json` files you have
-7. Adds the dependency added to a local `qpm.lock.json`, which holds information about dependencies that have already been resolved.
+1. Collects all dependencies
+2. Collapses these dependencies
+3. Iterates over the collected dependencies, obtaining a .so (if needed) for each one.
+4. Iterates over the collapsed dependencies, obtaining header information (if needed) for each one.
+5. Places all restored dependencies into `qpm.shared.json` (which is used for publishing)
+
+During steps 3 and 4, QPM will modify your `Android.mk`, if it exists, backing it up to `Android.mk.backup` first.
 
 At this point, you should be able to build!
 
 ### Publishing
 
-Bother Sc2ad#8836 on Discord and tell them that you read this `README` and want to publish a package.
+There are several steps required in order to ensure your package is fit to be published on `qpackages.com`.
 
-### Important notes for Beat Saber development
+Firstly, you must perform a `qpm restore` (see [Restoring Dependencies](#restoring-dependencies))
 
-For beat saber development, it is important to ensure several things:
+After, you must ensure you either have the `headersOnly` additional property set to true, or you specify `soLink` and/or `debugSoLink`.
 
-1. Your dependencies are valid semver ranges that will match your code. For this purpose, I strongly suggest using `^x.x.x` for any core libraries you may depend on. ex: `qpm dependency add "beatsaber-hook" -v "^0.3.0"`
-2. `soLink` and `branchName` are strongly suggested additional properties. See `qpm properties-list` for a list of supported additional properties. Currently there is no way outside of pure edits to `qpm.json` to add additional data. It is planned in the future.
-3. **IMPORTANT**: In order to build libraries that rely on `beatsaber-hook`, modify the dependency additional data for `beatsaber-hook` to contain the following (this should be done BEFORE `qpm restore`):
+Then, the url must be set to either a github repository (ex: `https://github.com/sc2ad/QuestPackageManager`) or will be interpretted as a direct download.
 
-    ```json
-    "extraFiles": [
-        "src/inline-hook"
-    ]
-    ```
+The download specified by this link **MUST** have a `qpm.json` file that matches the version specified in your `qpm.shared.json` that you plan on publishing.
 
-4. You will also need to modify these headers after a `qpm restore`: Specifically, `extern/beatsaber-hook/src/inline-hook/*` should now include: `#include "beatsaber-hook/utils/logging.hpp"` and `#include "beatsaber-hook/inline-hook/And64InlineHook.hpp"`
+After you have ensured that all of the above is true, you can call:
+
+```bash
+qpm publish
+```
+
+However, due to the nature of QPM, it is possible to publish invalid packages to QPM, which will cause people trouble.
+For this reason, please message `Sc2ad#8836` before publishing a package to QPM.
+
+### Extra Notes
+
+`qpm package edit-extra` Can be used to add extra data to the `additionalData` property, without manual JSON edits to `qpm.json` and `qpm.shared.json`.
+
+`qpm properties-list` Can be used to list all supported properties in `additionalData`, as well as what types they are supported in.
+
+    A full list will be available on the wiki, once I get around to making it.
+
+Full documentation for each command will be fully available on the wiki (once I get around to making it). 
+A subset of this information can be found by doing `qpm --help`.
+
+**`qpm.shared.json`, `Android.mk.backup`, and `extern` should never be added to a git project!**
+
+You should explicitly add:
+
+```yml
+qpm.shared.json
+extern/
+*.backup
+```
+
+to your `.gitignore`.
+
+### Updating a dependency
+
+As easy as:
+
+```bash
+qpm dependency add "<DEPENDENCY ID>" -v "<NEW DEPENDENCY VERSION>"
+```
+
+followed by:
+
+```bash
+qpm restore
+```
+
+### QPM Cache
+
+QPM caches all restored dependencies to: `<QPM WORKING DIRECTORY>/QPM_Temp/`
+
+You can forcibly clear the QPM cache by calling:
+
+```bash
+qpm cache clear
+```
+
+## Beat Saber Development
+
+QPM was built with Beat Saber Quest development in mind.
+This does not mean it does not work on other games, or for other platforms, but it makes Beat Saber development very easy.
+
+In order to get started, it is recommended you have a VSCode project open, with existing `.vscode/c_cpp_properties.json`, `./Android.mk`, and `./bmbfmod.json` files.
+
+    **NOTE: Using the bsqm template may cause issues, since you will need to delete your `extern` folder and your `.gitmodules` file before continuing!**
+
+Then, you should start by creating your QPM package. This can be done by calling:
+```bash
+qpm package create <YOUR MOD ID> <YOUR VERSION>
+```
+
+After this, you should add a dependency to beatsaber-hook.
+It is good practice to specify an encompassing version range for your dependencies, so `^x.y.z` where `x.y.z` is the latest `beatsaber-hook` version.
+
+This can be found by checking the latest published package by visiting this link: [https://qpackages.com/beatsaber-hook/](https://qpackages.com/beatsaber-hook/).
+
+Once you know the version range you would like, call:
+
+```bash
+qpm dependency add "beatsaber-hook" -v "<VERSION RANGE>"
+```
+
+In most cases, this would be all we need to do before calling a `qpm restore` and building our mod.
+SADLY, `beatsaber-hook` has an issue which requires us to take one additional step. We need to edit `qpm.json` and edit the dependency from:
+
+```json
+"dependencies": [
+    {
+        "id": "beatsaber-hook",
+        "versionRange": "<VERSION RANGE>"
+    }
+]
+```
+
+to:
+
+```json
+"dependencies": [
+    {
+        "id": "beatsaber-hook",
+        "versionRange": "<VERSION RANGE>",
+        "additionalData": {
+            "extraFiles": [
+                "src/inline-hook"
+            ]
+        }
+    }
+]
+```
+
+_NOW_ we can perform a:
+
+```bash
+qpm restore
+```
+
+Finally, we just need to add a few lines to our `Android.mk` and we will be all set!
+
+For your main module's `LOCAL_CFLAGS` or `LOCAL_CPP_FLAGS`, add the following flag: `-isystem"./extern/libil2cpp/il2cpp/libil2cpp"`. This adds `libil2cpp` from your `extern` folder.
+
+For the `beatsaber-hook_x_y_z` module's `LOCAL_EXPORT_C_FLAGS`, add the following flags: `-DNEED_UNSAFE_CSHARP -DUNITY_2019`
+
+For intellisense, add `${workspaceFolder}/extern/libil2cpp/il2cpp/libil2cpp` to your `.vscode/c_cpp_properties.json`'s `includePath`.
+
+Now you should be all set to build! (You won't need to make these modifications the next time you perform a `qpm restore`)
+
+## Plugins
+
+Coming soon, QPM will allow for plugins to allow for modifications of additional files, or perform additional actions for all commands.
+QPM will also allow plugins to add commands as well.
