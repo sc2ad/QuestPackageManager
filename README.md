@@ -108,7 +108,7 @@ For this reason, please message `Sc2ad#8836` before publishing a package to QPM.
 
 `qpm properties-list` Can be used to list all supported properties in `additionalData`, as well as what types they are supported in.
 
-    A full list will be available on the wiki, once I get around to making it.
+A full list will be available on the wiki, once I get around to making it.
 
 Full documentation for each command will be fully available on the wiki (once I get around to making it). 
 A subset of this information can be found by doing `qpm --help`.
@@ -156,7 +156,7 @@ This does not mean it does not work on other games, or for other platforms, but 
 
 In order to get started, it is recommended you have a VSCode project open, with existing `.vscode/c_cpp_properties.json`, `./Android.mk`, and `./bmbfmod.json` files.
 
-    **NOTE: Using the bsqm template may cause issues, since you will need to delete your `extern` folder and your `.gitmodules` file before continuing!**
+**NOTE: Using the bsqm template may cause issues, since you will need to delete your `extern` folder and your `.gitmodules` file before continuing!**
 
 Then, you should start by creating your QPM package. This can be done by calling:
 ```bash
@@ -213,6 +213,13 @@ Finally, we just need to add a few lines to our `Android.mk` and we will be all 
 For your main module's `LOCAL_CFLAGS` or `LOCAL_CPP_FLAGS`, add the following flag: `-isystem"./extern/libil2cpp/il2cpp/libil2cpp"`. This adds `libil2cpp` from your `extern` folder.
 
 For the `beatsaber-hook_x_y_z` module's `LOCAL_EXPORT_C_FLAGS`, add the following flags: `-DNEED_UNSAFE_CSHARP -DUNITY_2019`
+
+Add to your main module the following (assuming you have `wildcard` defined):
+
+```mk
+LOCAL_SRC_FILES += $(call rwildcard,extern/beatsaber-hook/src/inline-hook,*.cpp)
+LOCAL_SRC_FILES += $(call rwildcard,extern/beatsaber-hook/src/inline-hook,*.c)
+```
 
 For intellisense, add `${workspaceFolder}/extern/libil2cpp/il2cpp/libil2cpp` to your `.vscode/c_cpp_properties.json`'s `includePath`.
 
