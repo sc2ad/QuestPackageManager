@@ -181,7 +181,8 @@ SADLY, `beatsaber-hook` has an issue which requires us to take one additional st
 "dependencies": [
     {
         "id": "beatsaber-hook",
-        "versionRange": "<VERSION RANGE>"
+        "versionRange": "<VERSION RANGE>",
+        "additionalData": {}
     }
 ]
 ```
