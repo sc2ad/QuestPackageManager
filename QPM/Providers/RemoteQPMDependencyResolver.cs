@@ -364,8 +364,8 @@ namespace QPM
                         if (!overrodeName)
                         {
                             exists = exists.TrimStart();
-                            if (exists.Length < sharedConfig.Config.Info.Id.Length + 1)
-                                exists = exists.TrimStart().Substring(sharedConfig.Config.Info.Id.Length + 1);
+                            if (exists.Length > sharedConfig.Config.Info.Id.Length + 1)
+                                exists = exists.Substring(sharedConfig.Config.Info.Id.Length + 1);
                         }
                         else
                         {
