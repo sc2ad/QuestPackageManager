@@ -42,7 +42,7 @@ namespace QPM
                 startInfo = new ProcessStartInfo
                 {
                     FileName = "/bin/bash",
-                    Arguments = "-c chmod +rw --recursive \"" + absPath + "\"",
+                    Arguments = "-c \"chmod +rw --recursive '" + absPath + "'\"",
                     UseShellExecute = false,
                     CreateNoWindow = true
                 };
