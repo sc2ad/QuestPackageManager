@@ -175,26 +175,13 @@ namespace QuestPackageManager
                 throw new ConfigException(Resources.ConfigInfoIsNull);
             var myDependencies = CollectDependencies();
 
-            // After all dependencies are grabbed, filter for ones we haven't yet met
             // Collapse our dependencies into unique IDs
             // This can throw, based off of invalid matches
             var collapsed = CollapseDependencies(myDependencies);
-            var unrestored = myDependencies.Where(kvp =>
-            {
-                if (kvp.Key is null
-                    || kvp.Key.Dependency is null
-                    || kvp.Key.Dependency.Id is null
-                    || kvp.Key.Dependency.VersionRange is null)
-                    return true;
-                if (sharedConfig.RestoredDependencies is null)
-                    return true;
-                var pair = sharedConfig.RestoredDependencies.FindAll(p => p != null && p.Dependency != null && kvp.Key.Dependency.Id.Equals(p.Dependency.Id, StringComparison.OrdinalIgnoreCase));
-                if (pair.Count > 0)
-                    return !pair.TrueForAll(p => p.Version != null && kvp.Key.Dependency.VersionRange.IsSatisfied(p.Version));
-                return true;
-            });
+            // Clear all restored dependencies to prepare
+            sharedConfig.RestoredDependencies.Clear();
 
-            foreach (var kvp in unrestored)
+            foreach (var kvp in myDependencies)
             {
                 // For each of the (non-unique) dependencies, resolve each one.
                 // However, we only want to HEADER resolve the unique dependencies
