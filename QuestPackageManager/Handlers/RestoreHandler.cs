@@ -42,7 +42,7 @@ namespace QuestPackageManager
             // We want to convert our uri into a config file
             var depConfig = dependencyResolver.GetSharedConfig(pair);
             if (depConfig is null)
-                throw new ConfigException($"Could not find config for: {d.Id}");
+                throw new ConfigException($"Could not find config for: {d.Id}! Range: {d.VersionRange}");
             // Then we want to check to ensure that the config file we have gotten is within our version
             if (depConfig.Config is null)
                 throw new ConfigException($"Confid is of an invalid format for: {d.Id} - No config!");
