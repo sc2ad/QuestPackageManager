@@ -59,7 +59,24 @@ namespace QPM
                 range = new SemVer.Range("*");
             if (string.IsNullOrEmpty(id))
                 return null;
-            var s = client.DownloadString($"/{id}?req={range}");
+            // We need to perform a double check to make sure we format this string properly for the backend.
+            // It's horrible and sad, but it must be done.
+
+            var rangeStr = range.ToString();
+            var ind = rangeStr.IndexOf('<');
+            if (ind > 1)
+            {
+                rangeStr = rangeStr.Substring(0, ind) + "," + rangeStr.Substring(ind);
+            }
+            else
+            {
+                ind = rangeStr.IndexOf('>');
+                if (ind > 1)
+                {
+                    rangeStr = rangeStr.Substring(0, ind) + "," + rangeStr.Substring(ind);
+                }
+            }
+            var s = client.DownloadString($"/{id}?req={rangeStr}");
             return JsonSerializer.Deserialize<ModPair>(s);
         }
 

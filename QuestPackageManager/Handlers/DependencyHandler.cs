@@ -49,7 +49,7 @@ namespace QuestPackageManager
             var existing = conf.Dependencies.FirstOrDefault(d => dep.Id.Equals(d.Id, StringComparison.OrdinalIgnoreCase));
             if (existing != null)
             {
-                existing.VersionRange = (dep ?? throw new ArgumentNullException(Resources.Dependency)).VersionRange;
+                existing.VersionRange = dep.VersionRange;
                 existing.AdditionalData.Clear();
                 foreach (var p in dep.AdditionalData)
                     existing.AdditionalData.Add(p.Key, p.Value);

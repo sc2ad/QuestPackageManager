@@ -337,7 +337,23 @@ namespace QPM
                     // For matching modules with names: beatsaber-hook_0_3_0 for replacing with beatsaber-hook_0_4_4
                     int sharedLib = main.SharedLibs.FindIndex(s => overrodeName ? module.Id.Equals(s, StringComparison.OrdinalIgnoreCase) : s.TrimStart().StartsWith(sharedConfig.Config.Info.Id, StringComparison.OrdinalIgnoreCase));
                     if (sharedLib < 0)
+                    {
                         main.SharedLibs.Add(module.Id);
+                        var matchingModule = mk.Modules.FindIndex(m => m.Id == module.Id);
+                        if (matchingModule == -1)
+                        {
+                            // Add if it didn't already exist
+                            mk.Modules.Insert(0, module);
+                        }
+                        else
+                        {
+                            // Overwrite if it does
+                            var exists = mk.Modules[matchingModule];
+                            exists.Id = module.Id;
+                            exists.Src = module.Src;
+                            exists.ExportIncludes = module.ExportIncludes;
+                        }
+                    }
                     else
                     {
                         // If we find a matching module, we need to see if our version is higher than it.
@@ -346,34 +362,40 @@ namespace QPM
                         var exists = main.SharedLibs[sharedLib];
                         var version = new SemVer.Version(0, 0, 0);
                         if (!overrodeName)
-                            version = new SemVer.Version(exists.TrimStart().ReplaceFirst(sharedConfig.Config.Info.Id + "_", "").Replace('_', '.'));
+                        {
+                            exists = exists.TrimStart();
+                            if (exists.Length < sharedConfig.Config.Info.Id.Length + 1)
+                                exists = exists.TrimStart().Substring(sharedConfig.Config.Info.Id.Length + 1);
+                        }
+                        else
+                        {
+                            exists = exists.TrimStart().Substring(module.Id.Length);
+                        }
+                        try
+                        {
+                            version = new SemVer.Version(exists.Replace('_', '.'));
+                        }
+                        catch (ArgumentException)
+                        {
+                            // If we cannot parse the version, always overwrite.
+                        }
                         if (version < sharedConfig.Config.Info.Version)
+                        {
                             // If the version we want to add is greater than the version already in there, we replace it.
+                            var matchingModule = mk.Modules.FindIndex(m => m.Id == main.SharedLibs[sharedLib]);
+                            if (matchingModule > -1)
+                            {
+                                // Overwrite if there is a matching module with an identical ID to the one we just replaced.
+                                mk.Modules[matchingModule].Id = module.Id;
+                                mk.Modules[matchingModule].Src = module.Src;
+                                mk.Modules[matchingModule].ExportIncludes = module.ExportIncludes;
+                            }
+                            else
+                            {
+                                mk.Modules.Insert(0, module);
+                            }
                             main.SharedLibs[sharedLib] = module.Id;
-                    }
-                }
-                // TODO: Probably a stupid check, but should be backed up (?) so should be more or less ok?
-                // For matching modules with names: beatsaber-hook_0_3_0 for replacing with beatsaber-hook_0_4_4
-                var existing = mk.Modules.FindIndex(m => overrodeName ? module.Id.Equals(m.Id, StringComparison.OrdinalIgnoreCase) : m.Id.TrimStart().StartsWith(sharedConfig.Config.Info.Id, StringComparison.OrdinalIgnoreCase));
-                if (existing < 0)
-                {
-                    mk.Modules.Insert(mk.Modules.Count - 1, module);
-                }
-                else
-                {
-                    // If we find a matching module, we need to see if our version is higher than it.
-                    // If it is, we overwrite. Otherwise, do nothing.
-                    // Also, if the src matches exactly, we don't have to worry.
-                    var exists = mk.Modules[existing];
-                    var version = new SemVer.Version(0, 0, 0);
-                    if (!overrodeName)
-                        version = new SemVer.Version(exists.Id.TrimStart().ReplaceFirst(sharedConfig.Config.Info.Id + "_", "").Replace('_', '.'));
-                    if (version < sharedConfig.Config.Info.Version)
-                    {
-                        // If the version we want to add is greater than the version already in there, we replace it.
-                        exists.Id = module.Id;
-                        exists.Src = module.Src;
-                        exists.ExportIncludes = module.ExportIncludes;
+                        }
                     }
                 }
             }
