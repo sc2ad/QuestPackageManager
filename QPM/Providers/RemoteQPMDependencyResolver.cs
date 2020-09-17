@@ -343,7 +343,7 @@ namespace QPM
                         if (matchingModule == -1)
                         {
                             // Add if it didn't already exist
-                            mk.Modules.Insert(0, module);
+                            mk.Modules.Insert(mk.Modules.Count - 1, module);
                         }
                         else
                         {
@@ -392,7 +392,7 @@ namespace QPM
                             }
                             else
                             {
-                                mk.Modules.Insert(0, module);
+                                mk.Modules.Insert(mk.Modules.Count - 1, module);
                             }
                             main.SharedLibs[sharedLib] = module.Id;
                         }
