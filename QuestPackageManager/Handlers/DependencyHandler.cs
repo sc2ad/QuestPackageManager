@@ -46,17 +46,18 @@ namespace QuestPackageManager
             if (conf.Info.Id.Equals(dep.Id, StringComparison.OrdinalIgnoreCase))
                 throw new DependencyException($"Recursive dependency! Tried to add dependency: {dep.Id}, but package ID matches!");
             // Ids are not case sensitive
-            var existing = conf.Dependencies.FirstOrDefault(d => dep.Id.Equals(d.Id, StringComparison.OrdinalIgnoreCase));
-            if (existing != null)
+            var existing = conf.Dependencies.Find(d => dep.Id.Equals(d.Id, StringComparison.OrdinalIgnoreCase));
+            if (existing is null)
             {
+                conf.Dependencies.Add(dep);
+            }
+            else
+            {
+                Console.WriteLine($"{existing} is not null!");
                 existing.VersionRange = dep.VersionRange;
                 existing.AdditionalData.Clear();
                 foreach (var p in dep.AdditionalData)
                     existing.AdditionalData.Add(p.Key, p.Value);
-            }
-            else
-            {
-                conf.Dependencies.Add(dep);
             }
             var shared = configProvider.GetSharedConfig();
             if (shared != null)
