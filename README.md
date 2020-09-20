@@ -16,7 +16,7 @@ A package manager for making Quest il2cpp mods and libraries. Commonly acronymiz
 ### Creating a package
 
 ```bash
-qpm pacakge create "PACKAGE ID" "PACKAGE VERSION"
+qpm package create "PACKAGE ID" "PACKAGE VERSION"
 ```
 
 Creates a package with id: `PACKAGE ID` and version: `PACKAGE VERSION` (which must be valid SemVer).
