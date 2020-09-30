@@ -105,11 +105,14 @@ namespace QPM.Providers
             {
                 var lines = File.ReadAllLines(path);
                 bool inModule = false;
+                bool firstModuleFound = false;
                 var module = new Module();
 
                 foreach (var line in lines)
                 {
-                    if (!inModule)
+                    if (!firstModuleFound)
+                        mk.Prefix.Add(line);
+                    else if (!inModule)
                         module.PrefixLines.Add(line);
                     else
                     {
@@ -194,6 +197,7 @@ namespace QPM.Providers
                     {
                         // Enter module
                         inModule = true;
+                        firstModuleFound = true;
                     }
                 }
 
@@ -212,6 +216,8 @@ namespace QPM.Providers
             if (!File.Exists(path + ".backup"))
                 File.Copy(path, path + ".backup");
             var sb = new StringBuilder();
+            foreach (var l in mk.Prefix)
+                sb.AppendLine(l);
             foreach (var m in mk.Modules)
             {
                 foreach (var p in m.PrefixLines)

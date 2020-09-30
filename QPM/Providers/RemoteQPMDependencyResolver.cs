@@ -105,8 +105,7 @@ namespace QPM
             {
                 Console.WriteLine($"Trying to clone from: {url}.git to: {downloadFolder}");
                 // This may not always be the case
-                bool recurse = data.ContainsKey(SupportedPropertiesCommand.AdditionalFiles);
-                Repository.Clone(url + ".git", downloadFolder, new CloneOptions { BranchName = branchName, RecurseSubmodules = recurse });
+                Repository.Clone(url + ".git", downloadFolder, new CloneOptions { BranchName = branchName, RecurseSubmodules = true });
                 Utils.DirectoryPermissions(downloadFolder);
             }
         }
@@ -177,11 +176,11 @@ namespace QPM
             // Combine the two, if there are two
             if (data.TryGetValue(SupportedPropertiesCommand.AdditionalFiles, out var elemDep))
             {
-                CopyAdditionalData(elemDep, root, dst);
+                CopyAdditionalData(elemDep, root, Path.Combine(myConfig.DependenciesDir, sharedConfig.Config.Info.Id));
             }
             if (sharedConfig.Config.Info.AdditionalData.TryGetValue(SupportedPropertiesCommand.AdditionalFiles, out var elemConfig))
             {
-                CopyAdditionalData(elemConfig, root, dst);
+                CopyAdditionalData(elemConfig, root, Path.Combine(myConfig.DependenciesDir, sharedConfig.Config.Info.Id));
             }
         }
 
@@ -195,6 +194,7 @@ namespace QPM
             if (Directory.Exists(downloadFolder))
                 Utils.DeleteDirectory(downloadFolder);
             ZipFile.ExtractToDirectory(downloadLoc, downloadFolder, true);
+            Utils.DirectoryPermissions(downloadFolder);
 
             // Use url provided in config to grab folders specified by config and place them under our own
             // If the shared folder doesn't exist, throw
