@@ -176,11 +176,17 @@ namespace QPM
             // Combine the two, if there are two
             if (data.TryGetValue(SupportedPropertiesCommand.AdditionalFiles, out var elemDep))
             {
-                CopyAdditionalData(elemDep, root, Path.Combine(myConfig.DependenciesDir, sharedConfig.Config.Info.Id));
+                var additionalFilesDst = Path.Combine(myConfig.DependenciesDir, sharedConfig.Config.Info.Id);
+                if (Directory.Exists(additionalFilesDst))
+                    Utils.DeleteDirectory(additionalFilesDst);
+                CopyAdditionalData(elemDep, root, additionalFilesDst);
             }
             if (sharedConfig.Config.Info.AdditionalData.TryGetValue(SupportedPropertiesCommand.AdditionalFiles, out var elemConfig))
             {
-                CopyAdditionalData(elemConfig, root, Path.Combine(myConfig.DependenciesDir, sharedConfig.Config.Info.Id));
+                var additionalFilesDst = Path.Combine(myConfig.DependenciesDir, sharedConfig.Config.Info.Id);
+                if (Directory.Exists(additionalFilesDst))
+                    Utils.DeleteDirectory(additionalFilesDst);
+                CopyAdditionalData(elemConfig, root, additionalFilesDst);
             }
         }
 
