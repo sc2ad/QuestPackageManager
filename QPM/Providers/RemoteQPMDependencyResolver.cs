@@ -166,9 +166,10 @@ namespace QPM
 
         private void CopyTo(string downloadFolder, in Config myConfig, in SharedConfig sharedConfig, in Dictionary<string, JsonElement> data)
         {
+            var baseDst = Path.Combine(myConfig.DependenciesDir, sharedConfig.Config.Info.Id);
+            if (Directory.Exists(baseDst))
+                Utils.DeleteDirectory(baseDst);
             var dst = Path.Combine(myConfig.DependenciesDir, sharedConfig.Config.Info.Id, sharedConfig.Config.SharedDir);
-            if (Directory.Exists(dst))
-                Utils.DeleteDirectory(dst);
             var root = Utils.GetSubdir(downloadFolder);
             var src = Path.Combine(root, sharedConfig.Config.SharedDir);
             Console.WriteLine($"Copying: {src} to: {dst}");
