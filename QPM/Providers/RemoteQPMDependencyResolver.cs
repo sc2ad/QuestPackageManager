@@ -277,13 +277,7 @@ namespace QPM
 
             WebClient client = new WebClient();
             // soName is dictated by the overriden name, if it exists. Otherwise, it is this.
-            var soName = "lib" + (sharedConfig.Config.Info.Id + "_" + sharedConfig.Config.Info.Version.ToString()).Replace('.', '_') + ".so";
-            bool overrodeName = false;
-            if (sharedConfig.Config.Info.AdditionalData.TryGetValue(SupportedPropertiesCommand.OverrideSoName, out var overridenName))
-            {
-                overrodeName = true;
-                soName = overridenName.GetString();
-            }
+            var soName = sharedConfig.Config.Info.GetSoName(out var overrodeName);
             var tempLoc = Path.Combine(Utils.GetTempDir(), soName);
             var fileLoc = Path.Combine(myConfig.DependenciesDir, soName);
             if (!File.Exists(fileLoc))

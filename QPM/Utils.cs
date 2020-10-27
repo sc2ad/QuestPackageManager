@@ -1,4 +1,6 @@
-﻿using System;
+﻿using QPM.Commands;
+using QuestPackageManager.Data;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -26,27 +28,21 @@ namespace QPM
 
         public static void DirectoryPermissions(string absPath)
         {
-            ProcessStartInfo startInfo;
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                startInfo = new ProcessStartInfo
+            ProcessStartInfo startInfo = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                ? new ProcessStartInfo
                 {
                     FileName = "cmd.exe",
                     Arguments = "/C chmod +rw --recursive \"" + absPath + "\"",
                     UseShellExecute = false,
                     CreateNoWindow = true,
-                };
-            }
-            else
-            {
-                startInfo = new ProcessStartInfo
+                }
+                : new ProcessStartInfo
                 {
                     FileName = "/bin/bash",
                     Arguments = "-c \"chmod +rw --recursive '" + absPath + "'\"",
                     UseShellExecute = false,
                     CreateNoWindow = true
                 };
-            }
             var proc = Process.Start(startInfo);
             proc.WaitForExit(1000);
         }
@@ -136,6 +132,24 @@ namespace QPM
             if (loc < 0)
                 return str;
             return str.Substring(0, loc) + toReplace + str.Substring(loc + toFind.Length);
+        }
+
+        /// <summary>
+        /// Returns the .so name of the provided PackageInfo, or null if it is headerOnly.
+        /// </summary>
+        /// <param name="info"></param>
+        /// <returns></returns>
+        public static string? GetSoName(this PackageInfo info, out bool overriden)
+        {
+            overriden = false;
+            if (info.AdditionalData.TryGetValue(SupportedPropertiesCommand.HeadersOnly, out var elem) && elem.GetBoolean())
+                return null;
+            if (info.AdditionalData.TryGetValue(SupportedPropertiesCommand.OverrideSoName, out var name))
+            {
+                overriden = true;
+                return name.GetString();
+            }
+            return "lib" + (info.Id + "_" + info.Version.ToString()).Replace('.', '_') + ".so";
         }
     }
 }

@@ -178,7 +178,24 @@ namespace QuestPackageManager
             // Collapse our dependencies into unique IDs
             // This can throw, based off of invalid matches
             var collapsed = CollapseDependencies(myDependencies);
-            // Clear all restored dependencies to prepare
+            // Clear all restored dependencies to prepare, only if we find we have even a SINGLE dependency mismatch
+            // So, first we check to see if we have everything already met in our shared file
+            bool perfectMatch = true;
+            foreach (var d in myDependencies)
+            {
+                if (sharedConfig.RestoredDependencies.Find(rvp => rvp == d.Key) == null)
+                {
+                    // If there is no match, we continue
+                    perfectMatch = false;
+                    break;
+                }
+            }
+            if (perfectMatch)
+            {
+                // We have a perfect match, so we are done!
+                OnRestore?.Invoke(this, myDependencies, collapsed);
+                return;
+            }
             sharedConfig.RestoredDependencies.Clear();
 
             foreach (var kvp in myDependencies)
