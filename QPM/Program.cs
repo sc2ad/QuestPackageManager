@@ -15,7 +15,17 @@ using System.Threading.Tasks;
 namespace QPM
 {
     [Command("qpm", Description = "Quest package manager")]
-    [Subcommand(typeof(PackageCommand), typeof(DependencyCommand), typeof(RestoreCommand), typeof(CollectCommand), typeof(CollapseCommand), typeof(PublishCommand), typeof(SupportedPropertiesCommand), typeof(CacheCommand), typeof(ClearCommand))]
+    [Subcommand(typeof(PackageCommand),
+        typeof(DependencyCommand),
+        typeof(RestoreCommand),
+        typeof(CollectCommand),
+        typeof(CollapseCommand),
+        typeof(PublishCommand),
+        typeof(SupportedPropertiesCommand),
+        typeof(CacheCommand),
+        typeof(ClearCommand),
+        typeof(VersionCommand)
+    )]
     internal class Program
     {
         internal const string PackageFileName = "qpm.json";
