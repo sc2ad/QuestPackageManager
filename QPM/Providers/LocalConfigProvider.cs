@@ -79,7 +79,7 @@ namespace QPM.Providers
         {
             if (localConfigGotten)
                 return localConfig;
-            localConfigGotten = true;
+            // We only set this flag once we create it. This basically allows us to continue checking to see if it exists over multiple calls.
             localConfig = null;
             if (!File.Exists(localConfigPath))
             {
@@ -92,6 +92,7 @@ namespace QPM.Providers
                     localConfig = new SharedConfig { Config = config };
                     Console.WriteLine("Creating new local config at: " + localConfigPath);
                     // Commit the created config when we explicitly want to create on failure
+                    localConfigGotten = true;
                     Commit();
                 }
             }
@@ -101,6 +102,7 @@ namespace QPM.Providers
                 // TODO: If we can solve the issue by recreating the JSON, we can try that here
                 var json = File.ReadAllText(localConfigPath);
                 localConfig = JsonSerializer.Deserialize<SharedConfig>(json, options);
+                localConfigGotten = true;
             }
             return localConfig;
         }
@@ -109,7 +111,7 @@ namespace QPM.Providers
         {
             if (configGotten)
                 return config;
-            configGotten = true;
+            // We only set this flag once we create it. This basically allows us to continue checking to see if it exists over multiple calls.
             config = null;
             if (!File.Exists(configPath))
             {
@@ -119,6 +121,7 @@ namespace QPM.Providers
                     Console.WriteLine("Creating new config at: " + configPath);
                     // Commit the created config when we explicitly want to create on failure
                     Commit();
+                    configGotten = true;
                 }
             }
             else
@@ -127,6 +130,7 @@ namespace QPM.Providers
                 // TODO: If we can solve the issue by recreating the JSON, we can try that here
                 var json = File.ReadAllText(configPath);
                 config = JsonSerializer.Deserialize<Config>(json, options);
+                configGotten = true;
             }
             return config;
         }
