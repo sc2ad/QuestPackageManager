@@ -183,7 +183,7 @@ namespace QuestPackageManager
             bool perfectMatch = true;
             foreach (var d in myDependencies)
             {
-                if (sharedConfig.RestoredDependencies.Find(rvp => rvp == d.Key) == null)
+                if (sharedConfig.RestoredDependencies.Find(rvp => rvp.Dependency == d.Key.Dependency && rvp.Version == d.Value.Config?.Info?.Version) is null)
                 {
                     // If there is no match, we continue
                     perfectMatch = false;
