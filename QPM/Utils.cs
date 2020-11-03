@@ -44,7 +44,7 @@ namespace QPM
                     CreateNoWindow = true
                 };
             var proc = Process.Start(startInfo);
-            proc.WaitForExit(1000);
+            proc?.WaitForExit(1000);
         }
 
         public static void CreateDirectory(string path)
@@ -73,7 +73,7 @@ namespace QPM
             }
         }
 
-        public static void CopyDirectory(string source, string dst, bool recurse = true, Action<string> onFileCopied = null)
+        public static void CopyDirectory(string source, string dst, bool recurse = true, Action<string>? onFileCopied = null)
         {
             DirectoryInfo dir = new DirectoryInfo(source);
             if (!Directory.Exists(dst))
@@ -89,6 +89,8 @@ namespace QPM
             if (recurse)
                 foreach (var d in dir.GetDirectories())
                     CopyDirectory(d.FullName, Path.Combine(dst, d.Name), recurse);
+            // Ensure the copied directory has permissions
+            DirectoryPermissions(dst);
         }
 
         public static string GetSubdir(string path)
@@ -106,13 +108,13 @@ namespace QPM
 
         public static void DeleteTempDir()
         {
-            var outter = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), Assembly.GetExecutingAssembly().GetName().Name + "_Temp");
+            var outter = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!, Assembly.GetExecutingAssembly().GetName().Name + "_Temp");
             DeleteDirectory(outter);
         }
 
         public static string GetTempDir()
         {
-            var outter = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), Assembly.GetExecutingAssembly().GetName().Name + "_Temp");
+            var outter = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!, Assembly.GetExecutingAssembly().GetName().Name + "_Temp");
             CreateDirectory(outter);
             DirectoryPermissions(outter);
             return outter;
