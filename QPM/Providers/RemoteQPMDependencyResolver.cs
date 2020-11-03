@@ -24,7 +24,7 @@ namespace QPM
     {
         private readonly WebClient client;
         private readonly QPMApi api;
-        private readonly Dictionary<Dependency, SharedConfig> cached = new Dictionary<Dependency, SharedConfig>();
+        private readonly Dictionary<RestoredDependencyPair, SharedConfig> cached = new Dictionary<RestoredDependencyPair, SharedConfig>();
         private readonly AndroidMkProvider androidMkProvider;
 
         public RemoteQPMDependencyResolver(QPMApi api, AndroidMkProvider mkProvider)
@@ -113,7 +113,7 @@ namespace QPM
         public SharedConfig GetSharedConfig(RestoredDependencyPair pair)
         {
             var dependency = pair.Dependency!;
-            if (cached.TryGetValue(dependency, out var conf))
+            if (cached.TryGetValue(pair, out var conf))
                 return conf;
             if (!dependency.AdditionalData.TryGetValue(SupportedPropertiesCommand.LocalPath, out var localE))
             {
@@ -140,7 +140,7 @@ namespace QPM
                     return null;
                 }
             }
-            cached.Add(dependency, conf);
+            cached.Add(pair, conf);
             return conf;
         }
 
