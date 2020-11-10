@@ -145,9 +145,9 @@ namespace QuestPackageManager
                     // We can assume SharedConfig has no null fields from CollectDependencies
                     if (p.Value[i].conf.Config?.Info?.Version > confToAdd.Config?.Info?.Version)
                         confToAdd = p.Value[i].conf;
-                    // Copy additional data
+                    // Copy additional data, only if it doesn't already exist.
                     foreach (var pair in p.Value[i].dep.Dependency!.AdditionalData)
-                        depToAdd.AdditionalData.Add(pair.Key, pair.Value);
+                        depToAdd.AdditionalData.TryAdd(pair.Key, pair.Value);
                     depToAdd.VersionRange = tmp;
                 }
                 // Add to collapsed mapping

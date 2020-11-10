@@ -53,7 +53,6 @@ namespace QuestPackageManager
             }
             else
             {
-                Console.WriteLine($"{existing} is not null!");
                 existing.VersionRange = dep.VersionRange;
                 existing.AdditionalData.Clear();
                 foreach (var p in dep.AdditionalData)
