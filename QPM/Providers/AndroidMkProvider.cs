@@ -117,7 +117,7 @@ namespace QPM.Providers
                     else
                     {
                         // Check if mod end
-                        if (line.StartsWith("include $(") || line.StartsWith("rwildcard=$"))
+                        if (line.StartsWith("include $(") || line.StartsWith("rwildcard=$") || line.StartsWith("LOCAL_PATH"))
                         {
                             module.BuildLine = line;
                             mk.Modules.Add(module);
