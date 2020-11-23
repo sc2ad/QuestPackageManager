@@ -335,12 +335,12 @@ namespace QPM
                 {
                     // TODO: Probably a stupid check, but should be backed up (?) so should be more or less ok?
                     // For matching modules with names: beatsaber-hook_0_3_0 for replacing with beatsaber-hook_0_4_4
-                    int sharedLib = main.SharedLibs.FindIndex(s => overrodeName ? module.Id.Equals(s, StringComparison.OrdinalIgnoreCase) : s.TrimStart().StartsWith(sharedConfig.Config.Info.Id, StringComparison.OrdinalIgnoreCase));
+                    int sharedLib = main.SharedLibs.FindIndex(s => overrodeName ? s.TrimStart().Equals(module.Id, StringComparison.OrdinalIgnoreCase) : s.TrimStart().StartsWith(sharedConfig.Config.Info.Id, StringComparison.OrdinalIgnoreCase));
                     if (sharedLib < 0)
                     {
                         main.SharedLibs.Add(module.Id);
-                        var matchingModule = mk.Modules.FindIndex(m => m.Id == module.Id);
-                        if (matchingModule == -1)
+                        var matchingModuleIndex = mk.Modules.FindIndex(m => overrodeName ? m.Id.TrimStart().Equals(module.Id, StringComparison.OrdinalIgnoreCase) : m.Id.TrimStart().StartsWith(sharedConfig.Config.Info.Id, StringComparison.OrdinalIgnoreCase));
+                        if (matchingModuleIndex == -1)
                         {
                             // Add if it didn't already exist
                             mk.Modules.Insert(mk.Modules.Count - 1, module);
@@ -348,10 +348,11 @@ namespace QPM
                         else
                         {
                             // Overwrite if it does
-                            var exists = mk.Modules[matchingModule];
-                            exists.Id = module.Id;
-                            exists.Src = module.Src;
-                            exists.ExportIncludes = module.ExportIncludes;
+                            var matchingModule = mk.Modules[matchingModuleIndex];
+                            matchingModule.PrefixLines = module.PrefixLines;
+                            matchingModule.Id = module.Id;
+                            matchingModule.Src = module.Src;
+                            matchingModule.ExportIncludes = module.ExportIncludes;
                         }
                     }
                     else
@@ -382,17 +383,20 @@ namespace QPM
                         if (version < sharedConfig.Config.Info.Version)
                         {
                             // If the version we want to add is greater than the version already in there, we replace it.
-                            var matchingModule = mk.Modules.FindIndex(m => m.Id == main.SharedLibs[sharedLib]);
-                            if (matchingModule > -1)
+                            var matchingModuleIndex = mk.Modules.FindIndex(m => overrodeName ? m.Id.TrimStart().Equals(module.Id, StringComparison.OrdinalIgnoreCase) : m.Id.TrimStart().StartsWith(sharedConfig.Config.Info.Id, StringComparison.OrdinalIgnoreCase));
+                            if (matchingModuleIndex == -1)
                             {
-                                // Overwrite if there is a matching module with an identical ID to the one we just replaced.
-                                mk.Modules[matchingModule].Id = module.Id;
-                                mk.Modules[matchingModule].Src = module.Src;
-                                mk.Modules[matchingModule].ExportIncludes = module.ExportIncludes;
+                                // Add if it didn't already exist
+                                mk.Modules.Insert(mk.Modules.Count - 1, module);
                             }
                             else
                             {
-                                mk.Modules.Insert(mk.Modules.Count - 1, module);
+                                // Overwrite if it does
+                                var matchingModule = mk.Modules[matchingModuleIndex];
+                                matchingModule.PrefixLines = module.PrefixLines;
+                                matchingModule.Id = module.Id;
+                                matchingModule.Src = module.Src;
+                                matchingModule.ExportIncludes = module.ExportIncludes;
                             }
                             main.SharedLibs[sharedLib] = module.Id;
                         }

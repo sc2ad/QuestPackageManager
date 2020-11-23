@@ -117,7 +117,7 @@ namespace QPM.Providers
                     else
                     {
                         // Check if mod end
-                        if (line.StartsWith("include $("))
+                        if (line.StartsWith("include $(") || line.StartsWith("rwildcard=$"))
                         {
                             module.BuildLine = line;
                             mk.Modules.Add(module);
