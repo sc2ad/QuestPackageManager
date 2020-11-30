@@ -24,20 +24,7 @@ namespace QPM.Providers
             this.path = path;
         }
 
-        private static Concat GetConcatType(string line)
-        {
-            var ind = line.IndexOf('=');
-            if (ind != -1)
-                return (line[ind - 1]) switch
-                {
-                    '+' => Concat.Add,
-                    ':' => Concat.Set,
-                    _ => Concat.None,
-                };
-            return Concat.None;
-        }
-
-        private static string BreakString(string line, out Concat type)
+        private static string? BreakString(string line, out Concat type)
         {
             var ind = line.IndexOf('=');
             if (ind != -1)
@@ -98,7 +85,7 @@ namespace QPM.Providers
             return lst;
         }
 
-        public AndroidMk GetFile()
+        public AndroidMk? GetFile()
         {
             var mk = new AndroidMk();
             try

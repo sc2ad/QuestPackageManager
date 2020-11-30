@@ -38,9 +38,9 @@ namespace QPM
         private const string DefaultBranch = "master";
 
         private bool _gotMk = false;
-        private AndroidMk _cachedMk;
+        private AndroidMk? _cachedMk;
 
-        private AndroidMk GetMk()
+        private AndroidMk? GetMk()
         {
             if (!_gotMk)
             {

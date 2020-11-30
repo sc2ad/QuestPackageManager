@@ -63,7 +63,7 @@ namespace QPM
             PackageHandler.OnNameChanged += PackageHandler_OnNameChanged;
             DependencyHandler.OnDependencyRemoved += DependencyHandler_OnDependencyRemoved;
             // TODO: AKLJSHFJKGHDKJ
-            RestoreHandler.OnRestore += (resolver as RemoteQPMDependencyResolver).OnRestore;
+            RestoreHandler.OnRestore += (resolver as RemoteQPMDependencyResolver)!.OnRestore;
 
             try
             {
@@ -83,6 +83,8 @@ namespace QPM
         {
             // Handle deletion of the dependency in question
             // That would include removing it from the config.SharedDir, removing it from Android.mk, removing it from bmbfmod.json
+            if (dependency.Id is null)
+                throw new DependencyException("Cannot remove a dependency that does not have a valid Id!");
             var mk = androidMkProvider.GetFile();
             if (mk != null)
             {
