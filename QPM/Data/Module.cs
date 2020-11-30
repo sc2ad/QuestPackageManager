@@ -9,9 +9,9 @@ namespace QPM.Data
     public class Module
     {
         public List<string> PrefixLines { get; set; } = new List<string>();
-        public string Id { get; set; }
+        public string? Id { get; set; }
         public List<string> Src { get; set; } = new List<string>();
-        public string ExportIncludes { get; set; }
+        public string? ExportIncludes { get; set; }
         public List<string> SharedLibs { get; set; } = new List<string>();
         public List<string> LdLibs { get; set; } = new List<string>();
         public List<string> CFlags { get; set; } = new List<string>();
@@ -20,7 +20,7 @@ namespace QPM.Data
         public List<string> CIncludes { get; set; } = new List<string>();
         public List<string> CppFeatures { get; set; } = new List<string>();
         public List<string> ExtraLines { get; set; } = new List<string>();
-        public string BuildLine { get; set; }
+        public string? BuildLine { get; set; }
 
         public void AddDefine(string id, string value)
         {

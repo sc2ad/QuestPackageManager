@@ -359,8 +359,9 @@ namespace QPM
                         int sharedLib = main.SharedLibs.FindIndex(s => overrodeName ? s.TrimStart().Equals(module.Id, StringComparison.OrdinalIgnoreCase) : s.TrimStart().StartsWith(sharedConfig.Config.Info.Id, StringComparison.OrdinalIgnoreCase));
                         if (sharedLib < 0)
                         {
-                            main.SharedLibs.Add(module.Id);
-                            var matchingModuleIndex = mk.Modules.FindIndex(m => overrodeName ? m.Id.TrimStart().Equals(module.Id, StringComparison.OrdinalIgnoreCase) : m.Id.TrimStart().StartsWith(sharedConfig.Config.Info.Id, StringComparison.OrdinalIgnoreCase));
+                            // module.Id is forcibly set just above
+                            main.SharedLibs.Add(module.Id!);
+                            var matchingModuleIndex = mk.Modules.FindIndex(m => (overrodeName ? m.Id?.TrimStart().Equals(module.Id, StringComparison.OrdinalIgnoreCase) : m.Id?.TrimStart().StartsWith(sharedConfig.Config.Info.Id, StringComparison.OrdinalIgnoreCase)) ?? false);
                             if (matchingModuleIndex == -1)
                             {
                                 // Add if it didn't already exist
@@ -387,11 +388,11 @@ namespace QPM
                             {
                                 exists = exists.TrimStart();
                                 if (exists.Length > sharedConfig.Config.Info.Id.Length + 1)
-                                    exists = exists.Substring(sharedConfig.Config.Info.Id.Length + 1);
+                                    exists = exists[(sharedConfig.Config.Info.Id.Length + 1)..];
                             }
                             else
                             {
-                                exists = exists.TrimStart().Substring(module.Id.Length);
+                                exists = exists.TrimStart()[module.Id!.Length..];
                             }
                             try
                             {
@@ -404,7 +405,7 @@ namespace QPM
                             if (version < sharedConfig.Config.Info.Version)
                             {
                                 // If the version we want to add is greater than the version already in there, we replace it.
-                                var matchingModuleIndex = mk.Modules.FindIndex(m => overrodeName ? m.Id.TrimStart().Equals(module.Id, StringComparison.OrdinalIgnoreCase) : m.Id.TrimStart().StartsWith(sharedConfig.Config.Info.Id, StringComparison.OrdinalIgnoreCase));
+                                var matchingModuleIndex = mk.Modules.FindIndex(m => (overrodeName ? m.Id?.TrimStart().Equals(module.Id, StringComparison.OrdinalIgnoreCase) : m.Id?.TrimStart().StartsWith(sharedConfig.Config.Info.Id, StringComparison.OrdinalIgnoreCase)) ?? false);
                                 if (matchingModuleIndex == -1)
                                 {
                                     // Add if it didn't already exist
@@ -419,7 +420,7 @@ namespace QPM
                                     matchingModule.Src = module.Src;
                                     matchingModule.ExportIncludes = module.ExportIncludes;
                                 }
-                                main.SharedLibs[sharedLib] = module.Id;
+                                main.SharedLibs[sharedLib] = module.Id!;
                             }
                         }
                     }
