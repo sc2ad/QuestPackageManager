@@ -206,9 +206,13 @@ namespace QPM
         // TODO: Add SharedConfig parameter
         public void ResolveDependency(in Config myConfig, in RestoredDependencyPair pair)
         {
+            if (pair.Dependency is null)
+                throw new ArgumentException("Dependency pair cannot have a null Dependency!", nameof(pair));
             var sharedConfig = GetSharedConfig(pair);
             if (sharedConfig is null)
                 throw new DependencyException($"Could not get shared config for dependency pair: {pair.Dependency.Id} version range: {pair.Dependency.VersionRange} specific version: {pair.Version}");
+            if (sharedConfig.Config is null || sharedConfig.Config.Info is null)
+                throw new DependencyException($"Shared config is invalid for dependency pair: {pair.Dependency.Id} version range: {pair.Dependency.VersionRange} specific version: {pair.Version}");
             var dependency = pair.Dependency;
 
             if (sharedConfig.Config.Info.AdditionalData.TryGetValue(SupportedPropertiesCommand.HeadersOnly, out var headerE) && headerE.GetBoolean())
@@ -226,16 +230,21 @@ namespace QPM
             // Grab the .so file link from AdditionalData and handle it
             // First, try to see if we have a debugSoLink. If we do, AND we either: don't have releaseSo OR it is set to false, use it
             // Otherwise, use the release so link.
-            string soLink = null;
+            string soLink = "";
             bool useRelease = false;
             if (dependency.AdditionalData.TryGetValue(SupportedPropertiesCommand.UseReleaseSo, out var releaseE) && releaseE.GetBoolean())
                 useRelease = true;
 
             // If it does, use it.
             // Otherwise, throw an error
-            string style = null;
+            string style = "";
             if (dependency.AdditionalData.TryGetValue(SupportedPropertiesCommand.StyleToUse, out var styleStr))
-                style = styleStr.GetString();
+            {
+                var tmp = styleStr.GetString();
+                if (tmp is null)
+                    throw new DependencyException($"StyleToUse: {tmp} cannot be null!");
+                style = tmp;
+            }
 
             if (style != null)
             {
@@ -251,10 +260,15 @@ namespace QPM
                         {
                             // Use this style
                             if (s.TryGetProperty(SupportedPropertiesCommand.DebugSoLink, out var soLinkEStyle) && !useRelease)
-                                soLink = soLinkEStyle.GetString();
-                            soLink = soLink is null && !s.TryGetProperty(SupportedPropertiesCommand.ReleaseSoLink, out soLinkEStyle)
+                            {
+                                var tmp = soLinkEStyle.GetString();
+                                if (tmp is null)
+                                    throw new DependencyException($"Style: {style} with debugSoLink: {tmp} cannot be null!");
+                                soLink = tmp;
+                            }
+                            soLink = string.IsNullOrEmpty(soLink) && !s.TryGetProperty(SupportedPropertiesCommand.ReleaseSoLink, out soLinkEStyle)
                                 ? throw new DependencyException($"Dependency: {sharedConfig.Config.Info.Id}, using style: {style} has no 'soLink' property! Cannot download so to link!")
-                                : soLinkEStyle.GetString();
+                                : soLinkEStyle.GetString()!;
                             found = true;
                             break;
                         }
@@ -268,121 +282,84 @@ namespace QPM
             }
 
             if (sharedConfig.Config.Info.AdditionalData.TryGetValue(SupportedPropertiesCommand.DebugSoLink, out var soLinkE))
-                soLink = soLinkE.GetString();
+            {
+                var tmp = soLinkE.GetString();
+                if (tmp is null)
+                    throw new DependencyException($"DebugSoLink: {tmp} cannot be null!");
+                soLink = tmp;
+            }
             // If we have no debug link, we must get it from the release so link.
             // If we cannot get it, we have to throw
-            soLink = soLink is null && !sharedConfig.Config.Info.AdditionalData.TryGetValue(SupportedPropertiesCommand.ReleaseSoLink, out soLinkE)
+            soLink = string.IsNullOrEmpty(soLink) && !sharedConfig.Config.Info.AdditionalData.TryGetValue(SupportedPropertiesCommand.ReleaseSoLink, out soLinkE)
                 ? throw new DependencyException($"Dependency: {sharedConfig.Config.Info.Id} has no 'soLink' property! Cannot download so to link!")
-                : soLinkE.GetString();
+                : soLinkE.GetString()!;
 
-            WebClient client = new WebClient();
+            WebClient client = new();
             // soName is dictated by the overriden name, if it exists. Otherwise, it is this.
             var soName = sharedConfig.Config.Info.GetSoName(out var overrodeName);
-            var tempLoc = Path.Combine(Utils.GetTempDir(), soName);
-            var fileLoc = Path.Combine(myConfig.DependenciesDir, soName);
-            // Always redownload specifically named files
-            // TODO: Modify this region to AVOID downloading specific dependencies on EVERY restore
-            if (!File.Exists(fileLoc) || overrodeName)
+            if (!(soName is null))
             {
-                File.Delete(fileLoc);
-                // If we have a file here already, we simply perform the modifications and call it a day
-                // AND we are not a specifically named file (since if we are, we need to overwrite cache)
-                if (File.Exists(tempLoc) && !overrodeName)
-                    // Copy the temp file to our current, then make sure we setup everything
-                    File.Copy(tempLoc, fileLoc);
+                var tempLoc = Path.Combine(Utils.GetTempDir(), soName);
+                var fileLoc = Path.Combine(myConfig.DependenciesDir, soName);
+                // Always redownload specifically named files
+                // TODO: Modify this region to AVOID downloading specific dependencies on EVERY restore
+                if (!File.Exists(fileLoc) || overrodeName)
+                {
+                    File.Delete(fileLoc);
+                    // If we have a file here already, we simply perform the modifications and call it a day
+                    // AND we are not a specifically named file (since if we are, we need to overwrite cache)
+                    if (File.Exists(tempLoc) && !overrodeName)
+                        // Copy the temp file to our current, then make sure we setup everything
+                        File.Copy(tempLoc, fileLoc);
+                    else
+                    {
+                        // We have to download
+                        File.Delete(tempLoc);
+                        Console.WriteLine($"Downloading so from: {soLink} to: {tempLoc}");
+                        client.DownloadFile(soLink, tempLoc);
+                        File.Copy(tempLoc, fileLoc);
+                    }
+                }
                 else
                 {
-                    // We have to download
-                    File.Delete(tempLoc);
-                    Console.WriteLine($"Downloading so from: {soLink} to: {tempLoc}");
-                    client.DownloadFile(soLink, tempLoc);
-                    File.Copy(tempLoc, fileLoc);
+                    Console.WriteLine($"Found existing: {fileLoc} for: {sharedConfig.Config.Info.Id} - version: {sharedConfig.Config.Info.Version}");
                 }
-            }
-            else
-            {
-                Console.WriteLine($"Found existing: {fileLoc} for: {sharedConfig.Config.Info.Id} - version: {sharedConfig.Config.Info.Version}");
-            }
-            // Perform modifications to the Android.mk and c_cpp_properties.json as necessary (I don't think c_cpp_properties.json should change, includePath is constant)
-            // But Android.mk needs some things changed:
-            // It needs a new module
-            // It needs to set some stuff on that new module
-            // It needs to use that new module in main build
+                // Perform modifications to the Android.mk and c_cpp_properties.json as necessary (I don't think c_cpp_properties.json should change, includePath is constant)
+                // But Android.mk needs some things changed:
+                // It needs a new module
+                // It needs to set some stuff on that new module
+                // It needs to use that new module in main build
 
-            var mk = GetMk();
-            if (mk != null)
-            {
-                var module = new Module
+                var mk = GetMk();
+                if (mk != null)
                 {
-                    PrefixLines = new List<string>
+                    var module = new Module
+                    {
+                        PrefixLines = new List<string>
                     {
                         $"# Creating prebuilt for dependency: {sharedConfig.Config.Info.Id} - version: {sharedConfig.Config.Info.Version}",
                         "include $(CLEAR_VARS)"
                     },
-                    Src = new List<string>
+                        Src = new List<string>
                     {
                         fileLoc.Replace('\\', '/')
                     },
-                    ExportIncludes = Path.Combine(myConfig.DependenciesDir, sharedConfig.Config.Info.Id).Replace('\\', '/'),
-                    BuildLine = "include $(PREBUILT_SHARED_LIBRARY)"
-                };
-                if (overrodeName)
-                    module.Id = soName.ReplaceFirst("lib", "").ReplaceLast(".so", "");
-                else
-                    module.EnsureIdIs(sharedConfig.Config.Info.Id, sharedConfig.Config.Info.Version);
-                var main = mk.Modules.LastOrDefault();
-                if (main != null)
-                {
-                    // TODO: Probably a stupid check, but should be backed up (?) so should be more or less ok?
-                    // For matching modules with names: beatsaber-hook_0_3_0 for replacing with beatsaber-hook_0_4_4
-                    int sharedLib = main.SharedLibs.FindIndex(s => overrodeName ? s.TrimStart().Equals(module.Id, StringComparison.OrdinalIgnoreCase) : s.TrimStart().StartsWith(sharedConfig.Config.Info.Id, StringComparison.OrdinalIgnoreCase));
-                    if (sharedLib < 0)
-                    {
-                        main.SharedLibs.Add(module.Id);
-                        var matchingModuleIndex = mk.Modules.FindIndex(m => overrodeName ? m.Id.TrimStart().Equals(module.Id, StringComparison.OrdinalIgnoreCase) : m.Id.TrimStart().StartsWith(sharedConfig.Config.Info.Id, StringComparison.OrdinalIgnoreCase));
-                        if (matchingModuleIndex == -1)
-                        {
-                            // Add if it didn't already exist
-                            mk.Modules.Insert(mk.Modules.Count - 1, module);
-                        }
-                        else
-                        {
-                            // Overwrite if it does
-                            var matchingModule = mk.Modules[matchingModuleIndex];
-                            matchingModule.PrefixLines = module.PrefixLines;
-                            matchingModule.Id = module.Id;
-                            matchingModule.Src = module.Src;
-                            matchingModule.ExportIncludes = module.ExportIncludes;
-                        }
-                    }
+                        ExportIncludes = Path.Combine(myConfig.DependenciesDir, sharedConfig.Config.Info.Id).Replace('\\', '/'),
+                        BuildLine = "include $(PREBUILT_SHARED_LIBRARY)"
+                    };
+                    if (overrodeName)
+                        module.Id = soName.ReplaceFirst("lib", "").ReplaceLast(".so", "");
                     else
+                        module.EnsureIdIs(sharedConfig.Config.Info.Id, sharedConfig.Config.Info.Version);
+                    var main = mk.Modules.LastOrDefault();
+                    if (main != null)
                     {
-                        // If we find a matching module, we need to see if our version is higher than it.
-                        // If it is, we overwrite. Otherwise, do nothing.
-                        // Also, if the src matches exactly, we don't have to worry.
-                        var exists = main.SharedLibs[sharedLib];
-                        var version = new SemVer.Version(0, 0, 0);
-                        if (!overrodeName)
+                        // TODO: Probably a stupid check, but should be backed up (?) so should be more or less ok?
+                        // For matching modules with names: beatsaber-hook_0_3_0 for replacing with beatsaber-hook_0_4_4
+                        int sharedLib = main.SharedLibs.FindIndex(s => overrodeName ? s.TrimStart().Equals(module.Id, StringComparison.OrdinalIgnoreCase) : s.TrimStart().StartsWith(sharedConfig.Config.Info.Id, StringComparison.OrdinalIgnoreCase));
+                        if (sharedLib < 0)
                         {
-                            exists = exists.TrimStart();
-                            if (exists.Length > sharedConfig.Config.Info.Id.Length + 1)
-                                exists = exists.Substring(sharedConfig.Config.Info.Id.Length + 1);
-                        }
-                        else
-                        {
-                            exists = exists.TrimStart().Substring(module.Id.Length);
-                        }
-                        try
-                        {
-                            version = new SemVer.Version(exists.Replace('_', '.'));
-                        }
-                        catch (ArgumentException)
-                        {
-                            // If we cannot parse the version, always overwrite.
-                        }
-                        if (version < sharedConfig.Config.Info.Version)
-                        {
-                            // If the version we want to add is greater than the version already in there, we replace it.
+                            main.SharedLibs.Add(module.Id);
                             var matchingModuleIndex = mk.Modules.FindIndex(m => overrodeName ? m.Id.TrimStart().Equals(module.Id, StringComparison.OrdinalIgnoreCase) : m.Id.TrimStart().StartsWith(sharedConfig.Config.Info.Id, StringComparison.OrdinalIgnoreCase));
                             if (matchingModuleIndex == -1)
                             {
@@ -398,7 +375,52 @@ namespace QPM
                                 matchingModule.Src = module.Src;
                                 matchingModule.ExportIncludes = module.ExportIncludes;
                             }
-                            main.SharedLibs[sharedLib] = module.Id;
+                        }
+                        else
+                        {
+                            // If we find a matching module, we need to see if our version is higher than it.
+                            // If it is, we overwrite. Otherwise, do nothing.
+                            // Also, if the src matches exactly, we don't have to worry.
+                            var exists = main.SharedLibs[sharedLib];
+                            var version = new SemVer.Version(0, 0, 0);
+                            if (!overrodeName)
+                            {
+                                exists = exists.TrimStart();
+                                if (exists.Length > sharedConfig.Config.Info.Id.Length + 1)
+                                    exists = exists.Substring(sharedConfig.Config.Info.Id.Length + 1);
+                            }
+                            else
+                            {
+                                exists = exists.TrimStart().Substring(module.Id.Length);
+                            }
+                            try
+                            {
+                                version = new SemVer.Version(exists.Replace('_', '.'));
+                            }
+                            catch (ArgumentException)
+                            {
+                                // If we cannot parse the version, always overwrite.
+                            }
+                            if (version < sharedConfig.Config.Info.Version)
+                            {
+                                // If the version we want to add is greater than the version already in there, we replace it.
+                                var matchingModuleIndex = mk.Modules.FindIndex(m => overrodeName ? m.Id.TrimStart().Equals(module.Id, StringComparison.OrdinalIgnoreCase) : m.Id.TrimStart().StartsWith(sharedConfig.Config.Info.Id, StringComparison.OrdinalIgnoreCase));
+                                if (matchingModuleIndex == -1)
+                                {
+                                    // Add if it didn't already exist
+                                    mk.Modules.Insert(mk.Modules.Count - 1, module);
+                                }
+                                else
+                                {
+                                    // Overwrite if it does
+                                    var matchingModule = mk.Modules[matchingModuleIndex];
+                                    matchingModule.PrefixLines = module.PrefixLines;
+                                    matchingModule.Id = module.Id;
+                                    matchingModule.Src = module.Src;
+                                    matchingModule.ExportIncludes = module.ExportIncludes;
+                                }
+                                main.SharedLibs[sharedLib] = module.Id;
+                            }
                         }
                     }
                 }
