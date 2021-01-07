@@ -58,18 +58,24 @@ namespace QPM
         {
             foreach (string directory in Directory.GetDirectories(path))
                 DeleteDirectory(directory);
-
+            foreach (string file in Directory.GetFiles(path))
+            {
+                File.SetAttributes(file, FileAttributes.Normal);
+                File.Delete(file);
+            }
+            var info = new DirectoryInfo(path);
+            info.Attributes = FileAttributes.Normal;
             try
             {
-                Directory.Delete(path, true);
+                Directory.Delete(path);
             }
             catch (IOException)
             {
-                Directory.Delete(path, true);
+                Directory.Delete(path);
             }
             catch (UnauthorizedAccessException)
             {
-                Directory.Delete(path, true);
+                Directory.Delete(path);
             }
         }
 
