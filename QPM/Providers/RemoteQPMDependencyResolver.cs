@@ -105,10 +105,27 @@ namespace QPM
             {
                 Console.WriteLine($"Trying to clone from: {url}.git to: {downloadFolder}");
                 // This may not always be the case
-                Repository.Clone(url + ".git", downloadFolder, new CloneOptions { BranchName = branchName, RecurseSubmodules = true });
+                try
+                {
+                    var proc = new ProcessStartInfo("git", "clone -b " + branchName + " " + url + ".git " + downloadFolder + " --recurse-submodules")
+                    {
+                        CreateNoWindow = true,
+                        RedirectStandardOutput = true
+                    };
+                    var p = Process.Start(proc)!;
+                    p.OutputDataReceived += P_OutputDataReceived;
+                    p.WaitForExit();
+                }
+                catch (Exception)
+                {
+                    Console.WriteLine("Attempt to clone using git failed!");
+                    Repository.Clone(url + ".git", downloadFolder, new CloneOptions { BranchName = branchName, RecurseSubmodules = true });
+                }
                 Utils.DirectoryPermissions(downloadFolder);
             }
         }
+
+        private void P_OutputDataReceived(object sender, DataReceivedEventArgs e) => Console.WriteLine(e.Data);
 
         public SharedConfig GetSharedConfig(RestoredDependencyPair pair)
         {
