@@ -87,7 +87,7 @@ namespace QPM
 
             foreach (var f in dir.GetFiles())
             {
-                if (!f.Exists || f.Attributes != FileAttributes.Normal)
+                if (!f.Exists)
                     continue;
                 var path = Path.Combine(dst, f.Name);
                 f.CopyTo(path);
@@ -97,7 +97,7 @@ namespace QPM
             if (recurse)
                 foreach (var d in dir.GetDirectories())
                 {
-                    if (d.Exists && d.Attributes == FileAttributes.Directory)
+                    if (d.Exists && d.Attributes.HasFlag(FileAttributes.Directory))
                         CopyDirectory(d.FullName, Path.Combine(dst, d.Name), recurse);
                 }
             // Ensure the copied directory has permissions
