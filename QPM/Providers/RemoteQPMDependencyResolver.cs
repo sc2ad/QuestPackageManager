@@ -195,7 +195,8 @@ namespace QPM
             var src = Path.Combine(root, sharedConfig.Config.SharedDir);
             if (!Directory.Exists(dst) || !Utils.FolderHash(src).SequenceEqual(Utils.FolderHash(dst)))
             {
-                Utils.DeleteDirectory(dst);
+                if (Directory.Exists(dst))
+                    Utils.DeleteDirectory(dst);
                 Console.WriteLine($"Copying: {src} to: {dst}");
                 Utils.CopyDirectory(src, dst);
             }
