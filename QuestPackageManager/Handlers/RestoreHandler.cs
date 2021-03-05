@@ -150,12 +150,29 @@ namespace QuestPackageManager
                         depToAdd.AdditionalData.TryAdd(pair.Key, pair.Value);
                     depToAdd.VersionRange = tmp;
                 }
-                // Add to collapsed mapping
-                collapsed.Add(new RestoredDependencyPair
+                // Add to collapsed mapping, if the dep to add/config is not an override name that would be a duplicate
+                var match = collapsed.FirstOrDefault(sc => sc.Value.Config!.AdditionalData.TryGetValue("overrideSoName", out var val)
+                            && confToAdd.Config!.AdditionalData.TryGetValue("overrideSoName", out var rhs) && val.GetString() == rhs.GetString()).Key;
+                if (match is not null)
                 {
-                    Dependency = depToAdd,
-                    Version = confToAdd.Config!.Info!.Version
-                }, confToAdd);
+                    // If we have a matching overrideSoName, check our config vs. existing config.
+                    // If our config is higher, use that instead.
+                    if (confToAdd.Config!.Info!.Version > collapsed[match].Config!.Info!.Version)
+                    {
+                        collapsed.Remove(match);
+                        match.Dependency = depToAdd;
+                        match.Version = confToAdd.Config!.Info!.Version;
+                        collapsed.Add(match, confToAdd);
+                    }
+                }
+                else
+                {
+                    collapsed.Add(new RestoredDependencyPair
+                    {
+                        Dependency = depToAdd,
+                        Version = confToAdd.Config!.Info!.Version
+                    }, confToAdd);
+                }
             }
             return collapsed;
         }

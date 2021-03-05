@@ -166,17 +166,23 @@ namespace QPM
             Console.WriteLine($"Copying additional data from: {root} to: {dst}");
             // There's no longer any need to resolve our includes. They should literally be fine as-is.
             // Copy all extra data
+            // TODO: Hash check additional data
             foreach (var item in elem.EnumerateArray())
             {
                 var location = Path.Combine(root, item.GetString());
                 if (File.Exists(location))
                 {
                     var dest = Path.Combine(dst, item.GetString());
+                    if (File.Exists(dest))
+                        File.Delete(dest);
                     File.Copy(location, dest);
                 }
                 else if (Directory.Exists(location))
                 {
-                    Utils.CopyDirectory(location, Path.Combine(dst, item.GetString()));
+                    var dest = Path.Combine(dst, item.GetString());
+                    if (Directory.Exists(dest))
+                        Utils.DeleteDirectory(dest);
+                    Utils.CopyDirectory(location, dest);
                 }
             }
         }
@@ -184,14 +190,18 @@ namespace QPM
         private void CopyTo(string downloadFolder, in Config myConfig, in SharedConfig sharedConfig, in Dictionary<string, JsonElement> data)
         {
             var baseDst = Path.Combine(myConfig.DependenciesDir, sharedConfig.Config.Info.Id);
-            if (Directory.Exists(baseDst))
-                Utils.DeleteDirectory(baseDst);
             var dst = Path.Combine(myConfig.DependenciesDir, sharedConfig.Config.Info.Id, sharedConfig.Config.SharedDir);
             var root = Utils.GetSubdir(downloadFolder);
             var src = Path.Combine(root, sharedConfig.Config.SharedDir);
-            Console.WriteLine($"Copying: {src} to: {dst}");
-            Utils.CopyDirectory(src, dst);
+            if (!Directory.Exists(dst) || !Utils.FolderHash(src).SequenceEqual(Utils.FolderHash(dst)))
+            {
+                Utils.DeleteDirectory(dst);
+                Console.WriteLine($"Copying: {src} to: {dst}");
+                Utils.CopyDirectory(src, dst);
+            }
+
             // Combine the two, if there are two
+            // TODO: Add hashing for additional data
             if (data.TryGetValue(SupportedPropertiesCommand.AdditionalFiles, out var elemDep))
             {
                 CopyAdditionalData(elemDep, root, Path.Combine(myConfig.DependenciesDir, sharedConfig.Config.Info.Id));
@@ -318,8 +328,7 @@ namespace QPM
             {
                 var tempLoc = Path.Combine(Utils.GetTempDir(), soName);
                 var fileLoc = Path.Combine(myConfig.DependenciesDir, soName);
-                // Always redownload specifically named files
-                // TODO: Modify this region to AVOID downloading specific dependencies on EVERY restore
+
                 if (!File.Exists(fileLoc) || overrodeName)
                 {
                     File.Delete(fileLoc);
