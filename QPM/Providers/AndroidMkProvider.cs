@@ -104,7 +104,7 @@ namespace QPM.Providers
                     else
                     {
                         // Check if mod end
-                        if (line.StartsWith("include $(") || line.StartsWith("rwildcard=$") || line.StartsWith("LOCAL_PATH"))
+                        if (line.StartsWith("include $(") || line.StartsWith("rwildcard=$") || line.StartsWith("LOCAL_PATH") || line.StartsWith("TARGET_ARCH_ABI"))
                         {
                             module.BuildLine = line;
                             mk.Modules.Add(module);
@@ -182,6 +182,27 @@ namespace QPM.Providers
                     }
                     if (line.StartsWith("include $(CLEAR_VARS)"))
                     {
+                        if (!firstModuleFound)
+                        {
+                            int size = mk.Prefix.Count;
+                            if(size > 0)
+                            {
+                                int index = size - 2;
+                                if (mk.Prefix[index].StartsWith("#"))
+                                {
+                                    module.PrefixLines.Add(mk.Prefix[index]);
+                                    mk.Prefix.RemoveAt(index);
+                                }
+                                size = mk.Prefix.Count;
+                                index = size - 1;
+                                if (mk.Prefix[index].StartsWith("include $(CLEAR_VARS)"))
+                                {
+                                    module.PrefixLines.Add(mk.Prefix[index]);
+                                    mk.Prefix.RemoveAt(index);
+                                }
+                            }
+                        }
+
                         // Enter module
                         inModule = true;
                         firstModuleFound = true;
