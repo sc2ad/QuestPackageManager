@@ -61,7 +61,23 @@ namespace QuestPackageManager
             if (pair.Version != null && pair.Version != depConfig.Config.Info.Version)
                 throw new ConfigException($"Wanted specific version: {pair.Version} but got: {depConfig.Config.Info.Version} for: {d.Id}");
             var toAdd = new RestoredDependencyPair { Dependency = d, Version = depConfig.Config.Info.Version };
-            if (!myDependencies.ContainsKey(toAdd))
+
+            // Add to collapsed mapping, if the dep to add/config is not an override name that would be a duplicate
+            var match = myDependencies.FirstOrDefault(sc => sc.Value.Config!.Info!.AdditionalData.TryGetValue("overrideSoName", out var val)
+                                                       && depConfig.Config!.Info!.AdditionalData.TryGetValue("overrideSoName", out var rhs) && val.GetString() == rhs.GetString()).Key;
+            if (match is not null)
+            {
+                // If we have a matching overrideSoName, check our config vs. existing config.
+                // If our config is higher, use that instead.
+                if (depConfig.Config!.Info!.Version > myDependencies[match].Config!.Info!.Version)
+                {
+                    myDependencies.Remove(match);
+                    match.Dependency = d;
+                    match.Version = depConfig.Config!.Info!.Version;
+                    myDependencies.Add(match, depConfig);
+                }
+            }
+            else if (!myDependencies.ContainsKey(toAdd))
             {
                 // We need to double check here, just to make sure we don't accidentally add when we literally have a potential match:
                 if (myDependencies.Keys.FirstOrDefault(item => toAdd.Dependency.Id.Equals(item.Dependency!.Id, StringComparison.OrdinalIgnoreCase) && toAdd.Version == item.Version) is null)
@@ -150,29 +166,12 @@ namespace QuestPackageManager
                         depToAdd.AdditionalData.TryAdd(pair.Key, pair.Value);
                     depToAdd.VersionRange = tmp;
                 }
-                // Add to collapsed mapping, if the dep to add/config is not an override name that would be a duplicate
-                var match = collapsed.FirstOrDefault(sc => sc.Value.Config!.AdditionalData.TryGetValue("overrideSoName", out var val)
-                            && confToAdd.Config!.AdditionalData.TryGetValue("overrideSoName", out var rhs) && val.GetString() == rhs.GetString()).Key;
-                if (match is not null)
+                // Add to collapsed mapping
+                collapsed.Add(new RestoredDependencyPair
                 {
-                    // If we have a matching overrideSoName, check our config vs. existing config.
-                    // If our config is higher, use that instead.
-                    if (confToAdd.Config!.Info!.Version > collapsed[match].Config!.Info!.Version)
-                    {
-                        collapsed.Remove(match);
-                        match.Dependency = depToAdd;
-                        match.Version = confToAdd.Config!.Info!.Version;
-                        collapsed.Add(match, confToAdd);
-                    }
-                }
-                else
-                {
-                    collapsed.Add(new RestoredDependencyPair
-                    {
-                        Dependency = depToAdd,
-                        Version = confToAdd.Config!.Info!.Version
-                    }, confToAdd);
-                }
+                    Dependency = depToAdd,
+                    Version = confToAdd.Config!.Info!.Version
+                }, confToAdd);
             }
             return collapsed;
         }
