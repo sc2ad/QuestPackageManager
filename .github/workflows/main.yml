@@ -2,14 +2,21 @@ name: .NET Core
 on: [push, pull_request]
 
 env:
-  DOTNET_VERSION: '5.0.100-preview.7.20366.6'
+  DOTNET_VERSION: '5.0.x'
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         runtime: ['ubuntu-x64', 'win-x64', 'osx-x64']
+        include:
+          - runtime: win-x64
+            os: windows-latest
+          - runtime: ubuntu-x64
+            os: ubuntu-latest
+          - runtime: osx-x64
+            os: macos-latest
 
     steps:
       - uses: actions/checkout@v2
@@ -28,7 +35,7 @@ jobs:
         run: dotnet restore
       - name: Build ${{ matrix.runtime }}
         working-directory: ./QPM
-        run: dotnet publish -r ${{ matrix.runtime }} -c Release
+        run: dotnet publish -r ${{ matrix.runtime }} -c Release -p:PublishReadyToRun=true
       - name: Artifact Upload ${{ matrix.runtime }}
         uses: actions/upload-artifact@v2
         with:
