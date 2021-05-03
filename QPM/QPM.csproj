@@ -20,7 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="SymLinker.Linker\SymLinker.Linker.csproj" />
+    <Content Include="SymLinker\SymLinker.Linker.csproj" />
   </ItemGroup>
 
 </Project>

@@ -2,7 +2,8 @@
   "profiles": {
     "QPM": {
       "commandName": "Project",
-      "commandLineArgs": "package edit version \"0.1.0\""
+      "commandLineArgs": "restore",
+      "workingDirectory": "E:\\SSDUse\\ProgrammingProjects\\CLionProjects\\BetterPerformance"
     }
   }
 }

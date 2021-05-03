@@ -4,6 +4,7 @@ using QPM.Data;
 using QPM.Providers;
 using QuestPackageManager;
 using QuestPackageManager.Data;
+using SymLinker;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -27,12 +28,27 @@ namespace QPM
         private readonly QPMApi api;
         private readonly Dictionary<RestoredDependencyPair, SharedConfig> cached = new Dictionary<RestoredDependencyPair, SharedConfig>();
         private readonly AndroidMkProvider androidMkProvider;
+        private static Linker? linker;
+
+        static RemoteQPMDependencyResolver()
+        {
+            try
+            {
+                linker = new();
+            }
+            catch (Exception e)
+            {
+                Console.Error.WriteLine($"Unable to use symlinks due to: \"{e.Message}\"\non {RuntimeInformation.OSDescription}, falling back to copy");
+            }
+        }
 
         public RemoteQPMDependencyResolver(QPMApi api, AndroidMkProvider mkProvider)
         {
             client = new WebClient();
             this.api = api;
             androidMkProvider = mkProvider;
+
+
         }
 
         private const string DownloadGithubUrl = "https://github.com";
@@ -326,10 +342,7 @@ namespace QPM
             WebClient client = new();
             // soName is dictated by the overriden name, if it exists. Otherwise, it is this.
             var soName = sharedConfig.Config.Info.GetSoName(out var overrodeName);
-            var linker = new SymLinker.Linker.Linker();
 
-            linker.OnWarn += s => Console.WriteLine($"Warn: {s}");
-            linker.OnError += s => Console.Error.WriteLine(s);
 
             if (!(soName is null))
             {
@@ -346,7 +359,7 @@ namespace QPM
                     {
                         // Make a symlink from the cache, or fallback to copy
                         // Copy the temp file to our current, then make sure we setup everything
-                        PlaceDep(linker, tempLoc, fullFileLoc);
+                        PlaceDep(tempLoc, fullFileLoc);
                     }
                     else
                     {
@@ -362,7 +375,7 @@ namespace QPM
                         {
                             // Make a symlink from the cache, or fallback to copy only for versioned libs
                             // Copy the temp file to our current, then make sure we setup everything
-                            PlaceDep(linker, tempLoc, fullFileLoc);
+                            PlaceDep(tempLoc, fullFileLoc);
                         }
                     }
                 }
@@ -474,8 +487,16 @@ namespace QPM
             }
         }
 
-        private static void PlaceDep(SymLinker.Linker.Linker linker, string tempLoc, string fileLoc)
+
+
+        private static void PlaceDep(string tempLoc, string fileLoc)
         {
+            if (linker == null)
+            {
+                File.Copy(tempLoc, fileLoc);
+                return;
+            }
+
             try
             {
                 // Attempt to make symlinks to avoid unnecessary copy
@@ -484,7 +505,7 @@ namespace QPM
             }
             catch (Exception e)
             {
-                Console.WriteLine($"Unable to create symlink due to: \"{e.Message}\"\n on {RuntimeInformation.OSDescription}, falling back to copy");
+                Console.WriteLine($"Unable to create symlink due to: \"{e.Message}\"\non {RuntimeInformation.OSDescription}, falling back to copy");
                 File.Copy(tempLoc, fileLoc);
             }
         }

@@ -1,9 +1,9 @@
-﻿using SymLinker.Linker;
+﻿using SymLinker;
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
 
-namespace SymLinker.Linker.LinkCreators
+namespace SymLinker.LinkCreators
 {
     internal class WindowsSymLinkCreator : ISymLinkCreator
     {
