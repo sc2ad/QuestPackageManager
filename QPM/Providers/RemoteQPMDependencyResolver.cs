@@ -11,6 +11,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Net;
+using System.Runtime.InteropServices;
 using System.Security.AccessControl;
 using System.Security.Principal;
 using System.Text;
@@ -325,10 +326,16 @@ namespace QPM
             WebClient client = new();
             // soName is dictated by the overriden name, if it exists. Otherwise, it is this.
             var soName = sharedConfig.Config.Info.GetSoName(out var overrodeName);
+            var linker = new SymLinker.Linker.Linker();
+
+            linker.OnWarn += s => Console.WriteLine($"Warn: {s}");
+            linker.OnError += s => Console.Error.WriteLine(s);
+
             if (!(soName is null))
             {
                 var tempLoc = Path.Combine(Utils.GetTempDir(), soName);
                 var fileLoc = Path.Combine(myConfig.DependenciesDir, soName);
+                var fullFileLoc = Path.GetFullPath(fileLoc);
 
                 if (!File.Exists(fileLoc) || overrodeName)
                 {
@@ -336,15 +343,27 @@ namespace QPM
                     // If we have a file here already, we simply perform the modifications and call it a day
                     // AND we are not a specifically named file (since if we are, we need to overwrite cache)
                     if (File.Exists(tempLoc) && !overrodeName)
+                    {
+                        // Make a symlink from the cache, or fallback to copy
                         // Copy the temp file to our current, then make sure we setup everything
-                        File.Copy(tempLoc, fileLoc);
+                        PlaceDep(linker, tempLoc, fullFileLoc);
+                    }
                     else
                     {
                         // We have to download
                         File.Delete(tempLoc);
                         Console.WriteLine($"Downloading so from: {soLink} to: {tempLoc}");
                         client.DownloadFile(soLink, tempLoc);
-                        File.Copy(tempLoc, fileLoc);
+
+                        // Copy the existing file if it's not versioned
+                        if (overrodeName)
+                            File.Copy(tempLoc, fileLoc);
+                        else
+                        {
+                            // Make a symlink from the cache, or fallback to copy only for versioned libs
+                            // Copy the temp file to our current, then make sure we setup everything
+                            PlaceDep(linker, tempLoc, fullFileLoc);
+                        }
                     }
                 }
                 else
@@ -452,6 +471,21 @@ namespace QPM
                         }
                     }
                 }
+            }
+        }
+
+        private static void PlaceDep(SymLinker.Linker.Linker linker, string tempLoc, string fileLoc)
+        {
+            try
+            {
+                // Attempt to make symlinks to avoid unnecessary copy
+                Console.WriteLine($"Creating symlink from {tempLoc} to {fileLoc}");
+                linker.CreateLink(tempLoc, fileLoc);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Unable to create symlink due to: \"{e.Message}\"\n on {RuntimeInformation.OSDescription}, falling back to copy");
+                File.Copy(tempLoc, fileLoc);
             }
         }
 

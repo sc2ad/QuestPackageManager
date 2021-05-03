@@ -19,4 +19,8 @@
     <ProjectReference Include="..\QuestPackageManager\QuestPackageManager.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="SymLinker.Linker\SymLinker.Linker.csproj" />
+  </ItemGroup>
+
 </Project>
