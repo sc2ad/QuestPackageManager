@@ -46,6 +46,11 @@ namespace SymLinker
         /// </returns>
         public string? CreateLink(string source, string dest)
         {
+            if (!IsValid())
+            {
+                return "Platform does not support symlinking or hard linking yet";
+            }
+
             var error = CheckLinkReadiness(source, dest);
 
             if (error != null)
