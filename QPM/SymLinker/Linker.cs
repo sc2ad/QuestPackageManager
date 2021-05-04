@@ -12,7 +12,7 @@ namespace SymLinker
 {
     public class Linker
     {
-        private readonly ISymLinkCreator _linker;
+        private readonly ISymLinkCreator? _linker;
 
         /// <summary>
         /// Creates a new Symbolic Link Creator
@@ -23,15 +23,18 @@ namespace SymLinker
             {
                 _linker = new WindowsSymLinkCreator();
             }
-            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-            {
-                _linker = new LinuxSymLinkCreator();
-            }
-            else
-            {
-                _linker = new OSXSymLinkCreator();
-            }
+            // TODO: Implement
+            // else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            // {
+            //     _linker = new LinuxSymLinkCreator();
+            // }
+            // else
+            // {
+            //     _linker = new OSXSymLinkCreator();
+            // }
         }
+
+        public bool IsValid() => _linker != null;
 
         /// <summary>
         /// Creates a symbolic link from <paramref name="source"/> to <paramref name="dest"/>
@@ -41,14 +44,18 @@ namespace SymLinker
         /// <returns>
         /// Returns true if the system was able to create the SymLink
         /// </returns>
-        public void CreateLink(string source, string dest)
+        public string? CreateLink(string source, string dest)
         {
-            CheckLinkReadiness(source, dest);
+            var error = CheckLinkReadiness(source, dest);
+
+            if (error != null)
+            {
+                return error;
+            }
 
             var linkMade = _linker.CreateSymLink(source, dest, true);
 
-            if (!linkMade)
-                throw new IOException("Failed to create link");
+            return !linkMade ? "Failed to create link" : null;
         }
 
         /// <summary>
@@ -59,20 +66,19 @@ namespace SymLinker
         /// <returns>
         /// Returns true if the system is ready to perform a SymLink
         /// </returns>
-        private void CheckLinkReadiness(string source, string dest)
+        private string? CheckLinkReadiness(string source, string dest)
         {
             // Check existance
             if (!File.Exists(source))
             {
-                throw new IOException("File source not found");
+                return "File source not found";
             }
 
             // Escape file to directory
             if (Path.HasExtension(dest) && !Directory.Exists(dest))
                 dest = Path.GetDirectoryName(dest) ?? string.Empty;
 
-            if (!Directory.Exists(dest))
-                throw new IOException("Folder destination not found");
+            return !Directory.Exists(dest) ? "Folder destination not found" : null;
         }
     }
 }

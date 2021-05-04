@@ -28,27 +28,13 @@ namespace QPM
         private readonly QPMApi api;
         private readonly Dictionary<RestoredDependencyPair, SharedConfig> cached = new Dictionary<RestoredDependencyPair, SharedConfig>();
         private readonly AndroidMkProvider androidMkProvider;
-        private static Linker? linker;
-
-        static RemoteQPMDependencyResolver()
-        {
-            try
-            {
-                linker = new();
-            }
-            catch (Exception e)
-            {
-                Console.Error.WriteLine($"Unable to use symlinks due to: \"{e.Message}\"\non {RuntimeInformation.OSDescription}, falling back to copy");
-            }
-        }
+        private static readonly Linker Linker = new();
 
         public RemoteQPMDependencyResolver(QPMApi api, AndroidMkProvider mkProvider)
         {
             client = new WebClient();
             this.api = api;
             androidMkProvider = mkProvider;
-
-
         }
 
         private const string DownloadGithubUrl = "https://github.com";
@@ -491,23 +477,25 @@ namespace QPM
 
         private static void PlaceDep(string tempLoc, string fileLoc)
         {
-            if (linker == null)
+            if (!Linker.IsValid())
             {
+                Console.Error.WriteLine($"Unable to use symlinks on {RuntimeInformation.OSDescription}, falling back to copy");
                 File.Copy(tempLoc, fileLoc);
                 return;
             }
 
-            try
+            // Attempt to make symlinks to avoid unnecessary copy
+
+            var error = Linker.CreateLink(tempLoc, fileLoc);
+
+            if (error == null)
             {
-                // Attempt to make symlinks to avoid unnecessary copy
-                Console.WriteLine($"Creating symlink from {tempLoc} to {fileLoc}");
-                linker.CreateLink(tempLoc, fileLoc);
+                Console.WriteLine($"Created symlink from {tempLoc} to {fileLoc}");
+                return;
             }
-            catch (Exception e)
-            {
-                Console.WriteLine($"Unable to create symlink due to: \"{e.Message}\"\non {RuntimeInformation.OSDescription}, falling back to copy");
-                File.Copy(tempLoc, fileLoc);
-            }
+
+            Console.WriteLine($"Unable to create symlink due to: \"{error}\"\non {RuntimeInformation.OSDescription}, falling back to copy");
+            File.Copy(tempLoc, fileLoc);
         }
 
         public void ResolveUniqueDependency(in Config myConfig, KeyValuePair<RestoredDependencyPair, SharedConfig> resolved)
