@@ -58,7 +58,7 @@ namespace SymLinker
                 return error;
             }
 
-            var linkMade = _linker.CreateSymLink(source, dest, true);
+            var linkMade = _linker!.CreateSymLink(source, dest, true);
 
             return !linkMade ? "Failed to create link" : null;
         }
