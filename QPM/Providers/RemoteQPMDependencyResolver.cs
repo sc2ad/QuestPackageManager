@@ -4,6 +4,7 @@ using QPM.Data;
 using QPM.Providers;
 using QuestPackageManager;
 using QuestPackageManager.Data;
+using SymLinker;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -11,6 +12,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Net;
+using System.Runtime.InteropServices;
 using System.Security.AccessControl;
 using System.Security.Principal;
 using System.Text;
@@ -26,6 +28,7 @@ namespace QPM
         private readonly QPMApi api;
         private readonly Dictionary<RestoredDependencyPair, SharedConfig> cached = new Dictionary<RestoredDependencyPair, SharedConfig>();
         private readonly AndroidMkProvider androidMkProvider;
+        private static readonly Linker linker = new();
 
         public RemoteQPMDependencyResolver(QPMApi api, AndroidMkProvider mkProvider)
         {
@@ -325,10 +328,13 @@ namespace QPM
             WebClient client = new();
             // soName is dictated by the overriden name, if it exists. Otherwise, it is this.
             var soName = sharedConfig.Config.Info.GetSoName(out var overrodeName);
+
+
             if (!(soName is null))
             {
                 var tempLoc = Path.Combine(Utils.GetTempDir(), soName);
                 var fileLoc = Path.Combine(myConfig.DependenciesDir, soName);
+                var fullFileLoc = Path.GetFullPath(fileLoc);
 
                 if (!File.Exists(fileLoc) || overrodeName)
                 {
@@ -336,15 +342,27 @@ namespace QPM
                     // If we have a file here already, we simply perform the modifications and call it a day
                     // AND we are not a specifically named file (since if we are, we need to overwrite cache)
                     if (File.Exists(tempLoc) && !overrodeName)
+                    {
+                        // Make a symlink from the cache, or fallback to copy
                         // Copy the temp file to our current, then make sure we setup everything
-                        File.Copy(tempLoc, fileLoc);
+                        PlaceDep(tempLoc, fullFileLoc);
+                    }
                     else
                     {
                         // We have to download
                         File.Delete(tempLoc);
                         Console.WriteLine($"Downloading so from: {soLink} to: {tempLoc}");
                         client.DownloadFile(soLink, tempLoc);
-                        File.Copy(tempLoc, fileLoc);
+
+                        // Copy the existing file if it's not versioned
+                        if (overrodeName)
+                            File.Copy(tempLoc, fileLoc);
+                        else
+                        {
+                            // Make a symlink from the cache, or fallback to copy only for versioned libs
+                            // Copy the temp file to our current, then make sure we setup everything
+                            PlaceDep(tempLoc, fullFileLoc);
+                        }
                     }
                 }
                 else
@@ -453,6 +471,31 @@ namespace QPM
                     }
                 }
             }
+        }
+
+
+
+        private static void PlaceDep(string tempLoc, string fileLoc)
+        {
+            if (!linker.IsValid())
+            {
+                Console.Error.WriteLine($"Unable to use symlinks on {RuntimeInformation.OSDescription}, falling back to copy");
+                File.Copy(tempLoc, fileLoc);
+                return;
+            }
+
+            // Attempt to make symlinks to avoid unnecessary copy
+
+            var error = linker.CreateLink(tempLoc, fileLoc);
+
+            if (error == null)
+            {
+                Console.WriteLine($"Created symlink from {tempLoc} to {fileLoc}");
+                return;
+            }
+
+            Console.WriteLine($"Unable to create symlink due to: \"{error}\"\non {RuntimeInformation.OSDescription}, falling back to copy");
+            File.Copy(tempLoc, fileLoc);
         }
 
         public void ResolveUniqueDependency(in Config myConfig, KeyValuePair<RestoredDependencyPair, SharedConfig> resolved)
