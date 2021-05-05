@@ -34,7 +34,7 @@ namespace SymLinker
             // }
         }
 
-        public bool IsValid() => _linker != null;
+        public bool IsValid() => _linker is not null;
 
         /// <summary>
         /// Creates a symbolic link from <paramref name="source"/> to <paramref name="dest"/>
@@ -75,9 +75,8 @@ namespace SymLinker
         {
             // Check existance
             if (!File.Exists(source))
-            {
                 return "File source not found";
-            }
+
 
             // Escape file to directory
             if (Path.HasExtension(dest) && !Directory.Exists(dest))

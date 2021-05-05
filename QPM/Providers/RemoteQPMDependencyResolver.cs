@@ -28,7 +28,7 @@ namespace QPM
         private readonly QPMApi api;
         private readonly Dictionary<RestoredDependencyPair, SharedConfig> cached = new Dictionary<RestoredDependencyPair, SharedConfig>();
         private readonly AndroidMkProvider androidMkProvider;
-        private static readonly Linker Linker = new();
+        private static readonly Linker linker = new();
 
         public RemoteQPMDependencyResolver(QPMApi api, AndroidMkProvider mkProvider)
         {
@@ -477,7 +477,7 @@ namespace QPM
 
         private static void PlaceDep(string tempLoc, string fileLoc)
         {
-            if (!Linker.IsValid())
+            if (!linker.IsValid())
             {
                 Console.Error.WriteLine($"Unable to use symlinks on {RuntimeInformation.OSDescription}, falling back to copy");
                 File.Copy(tempLoc, fileLoc);
@@ -486,7 +486,7 @@ namespace QPM
 
             // Attempt to make symlinks to avoid unnecessary copy
 
-            var error = Linker.CreateLink(tempLoc, fileLoc);
+            var error = linker.CreateLink(tempLoc, fileLoc);
 
             if (error == null)
             {
