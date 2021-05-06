@@ -8,7 +8,7 @@ namespace SymLinker.LinkCreators
 {
     internal class LinuxSymLinkCreator : ISymLinkCreator
     {
-        const string LIBC = "libc.so";
+        const string LIBC = "libc";
 
         [DllImport(LIBC)]
         private static extern int symlink(
