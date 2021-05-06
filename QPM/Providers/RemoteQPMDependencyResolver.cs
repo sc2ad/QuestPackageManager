@@ -107,7 +107,7 @@ namespace QPM
                 // This may not always be the case
                 try
                 {
-                    var proc = new ProcessStartInfo("git", $"clone -b {branchName} {url}.git {downloadFolder} --recurse-submodules --no-tags")
+                    var proc = new ProcessStartInfo("git", $"clone -b {branchName} {url}.git {downloadFolder} --recurse-submodules --no-tags --depth 1")
                     {
                         CreateNoWindow = true,
                         RedirectStandardOutput = true,
