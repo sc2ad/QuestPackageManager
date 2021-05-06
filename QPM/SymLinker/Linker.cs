@@ -23,11 +23,11 @@ namespace SymLinker
             {
                 _linker = new WindowsSymLinkCreator();
             }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                _linker = new LinuxSymLinkCreator();
+            }
             // TODO: Implement
-            // else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-            // {
-            //     _linker = new LinuxSymLinkCreator();
-            // }
             // else
             // {
             //     _linker = new OSXSymLinkCreator();
