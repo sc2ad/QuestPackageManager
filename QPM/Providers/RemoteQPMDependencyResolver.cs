@@ -182,9 +182,9 @@ namespace QPM
                 {
 
                     var dest = Path.GetFullPath(Path.Combine(dst, item.GetString()!));
-                    // Add an extension so it "thinks" it's a file to get the parent directory easily
+                    // Get the parent directory
                     var destFullParent =
-                        Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(dest) + ".s")!;
+                        Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(dest))!;
 
                     if (!Directory.Exists(destFullParent))
                     {
