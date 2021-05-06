@@ -113,7 +113,7 @@ namespace SymLinker
                 }
             }
 
-            return !Directory.Exists(dest) ? "Folder destination not found" : null;
+            return !Directory.Exists(dest) ? $"Folder destination {dest} not found" : null;
         }
     }
 }

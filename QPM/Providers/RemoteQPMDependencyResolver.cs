@@ -169,22 +169,35 @@ namespace QPM
             // TODO: Hash check additional data
             foreach (var item in elem.EnumerateArray())
             {
-                var location = Path.Combine(root, item.GetString());
+                var location = Path.Combine(root, item.GetString()!);
                 if (File.Exists(location))
                 {
-                    var dest = Path.GetFullPath(Path.Combine(dst, item.GetString()));
+                    var dest = Path.GetFullPath(Path.Combine(dst, item.GetString()!));
+
+                    Utils.CreateDirectory(Path.GetDirectoryName(dest)!);
 
                     Utils.SymlinkOrCopyFile(location, dest);
                 }
                 else if (Directory.Exists(location))
                 {
-                    var dest = Path.GetFullPath(Path.Combine(dst, item.GetString()));
-                    if (Directory.Exists(dest))
+
+                    var dest = Path.GetFullPath(Path.Combine(dst, item.GetString()!));
+                    // Add an extension so it "thinks" it's a file to get the parent directory easily
+                    var destFullParent =
+                        Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(dest) + ".s")!;
+
+                    if (!Directory.Exists(destFullParent))
+                    {
+                        // Create parent directories
+                        Utils.CreateDirectory(destFullParent);
+                    }
+                    // Delete existing dir
+                    else if (Directory.Exists(dest))
+                    {
                         Utils.DeleteDirectory(dest);
+                    }
 
-                    // Create parent directories
-                    Utils.CreateDirectory(dst);
-
+                    Console.WriteLine($"Creating symlink for additional data {location} to {dest}");
                     Utils.SymLinkOrCopyDirectory(location, dest);
                 }
             }
