@@ -85,7 +85,17 @@ namespace SymLinker
                 return "File source not found";
 
 
-            // Escape file to directory
+
+            if (
+                Path.GetPathRoot(dest) != Path.GetPathRoot(source) // Check if on different drives
+                && RuntimeInformation.IsOSPlatform(OSPlatform.Windows) // Check if Windows
+                && Path.HasExtension(dest) // If file on Windows, it's hard link.
+            )
+                return
+                    "Hardlink for file will not work on different drives on Windows. Move QPM temp or project to the same drive.";
+
+
+                // Escape file to directory
             if (Path.HasExtension(dest))
             {
                 if (!Directory.Exists(dest))
