@@ -58,9 +58,16 @@ namespace SymLinker
                 return error;
             }
 
-            var linkMade = _linker!.CreateSymLink(source, dest, true);
+            try
+            {
+                var linkMade = _linker!.CreateSymLink(source, dest, Path.HasExtension(source));
 
-            return !linkMade ? "Failed to create link" : null;
+                return linkMade && (Directory.Exists(dest) || File.Exists(dest)) ? null : "Failed to create link";
+            }
+            catch (Exception e)
+            {
+                return e.Message;
+            }
         }
 
         /// <summary>
@@ -74,13 +81,27 @@ namespace SymLinker
         private string? CheckLinkReadiness(string source, string dest)
         {
             // Check existance
-            if (!File.Exists(source))
+            if (!File.Exists(source) && !Directory.Exists(source))
                 return "File source not found";
 
 
             // Escape file to directory
-            if (Path.HasExtension(dest) && !Directory.Exists(dest))
-                dest = Path.GetDirectoryName(dest) ?? string.Empty;
+            if (Path.HasExtension(dest))
+            {
+                if (!Directory.Exists(dest))
+                    dest = Path.GetDirectoryName(dest) ?? string.Empty;
+            }
+            else
+            {
+                try
+                {
+                    dest = Directory.GetParent(dest)!.FullName;
+                }
+                catch (Exception e)
+                {
+                    return e.Message;
+                }
+            }
 
             return !Directory.Exists(dest) ? "Folder destination not found" : null;
         }
