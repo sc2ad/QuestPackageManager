@@ -1,5 +1,6 @@
 ﻿using QPM.Commands;
 using QuestPackageManager.Data;
+using SymLinker;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -15,6 +16,8 @@ namespace QPM
 {
     public static class Utils
     {
+        private static readonly Linker linker = new();
+
         public static void WriteMessage(string message, ConsoleColor color)
         {
             var oldColor = Console.ForegroundColor;
@@ -113,6 +116,79 @@ namespace QPM
             }
         }
 
+        /// <summary>
+        ///
+        /// </summary>
+        /// <param name="source"></param>
+        /// <param name="dest"></param>
+        /// <returns>true if symlinked false if copied</returns>
+        public static bool SymlinkOrCopyFile(string source, string dest)
+        {
+            if (File.Exists(dest))
+                File.Delete(dest);
+
+            if (!linker.IsValid())
+            {
+                Console.Error.WriteLine($"Unable to use symlinks on {RuntimeInformation.OSDescription}, falling back to copy");
+                File.Copy(source, dest);
+                return false;
+            }
+
+            // Attempt to make symlinks to avoid unnecessary copy
+
+            var error = linker.CreateLink(source, dest);
+
+            if (error == null)
+            {
+                Console.WriteLine($"Created symlink from {source} to {dest}");
+                return true;
+            }
+
+            Console.WriteLine($"Unable to create symlink due to: \"{error}\" on {RuntimeInformation.OSDescription}, falling back to copy");
+            if (File.Exists(dest))
+                File.Delete(dest);
+
+            File.Copy(source, dest);
+            return false;
+        }
+
+        /// <summary>
+        ///
+        /// </summary>
+        /// <param name="source"></param>
+        /// <param name="dst"></param>
+        /// <param name="recurse"></param>
+        /// <param name="onFileCopied"></param>
+        /// <returns>true if symlinked false if copied</returns>
+        public static bool SymLinkOrCopyDirectory(string source, string dst, bool recurse = true,
+            Action<string>? onFileCopied = null)
+        {
+            if (!linker.IsValid())
+            {
+                Console.Error.WriteLine($"Unable to use symlinks on {RuntimeInformation.OSDescription}, falling back to copy");
+                CopyDirectory(source, dst, recurse, onFileCopied);
+                return false;
+            }
+
+            if (Directory.Exists(dst))
+                DeleteDirectory(dst);
+
+            // Attempt to make symlinks to avoid unnecessary copy
+            var error = linker.CreateLink(source, dst);
+
+            if (error == null)
+            {
+                // Ensure the copied directory has permissions
+                DirectoryPermissions(dst);
+                Console.WriteLine($"Created symlink from {source} to {dst}");
+                return true;
+            }
+
+            Console.WriteLine($"Unable to create symlink due to: \"{error}\" on {RuntimeInformation.OSDescription}, falling back to copy");
+            CopyDirectory(source, dst, recurse, onFileCopied);
+            return false;
+        }
+
         public static void CopyDirectory(string source, string dst, bool recurse = true, Action<string>? onFileCopied = null)
         {
             DirectoryInfo dir = new DirectoryInfo(source);
@@ -154,12 +230,19 @@ namespace QPM
         public static void DeleteTempDir()
         {
             var outter = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!, Assembly.GetExecutingAssembly().GetName().Name + "_Temp");
-            DeleteDirectory(outter);
+            var outterv2 = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!, Assembly.GetExecutingAssembly().GetName().Name + "_Tempv2");
+            if (Directory.Exists(outter))
+                DeleteDirectory(outter);
+
+            if (Directory.Exists(outterv2))
+                DeleteDirectory(outterv2);
         }
+
+        public static string GetCachedConfig(PackageInfo packageInfo) => Path.Combine(GetTempDir(), packageInfo.Id, packageInfo.Version.ToString());
 
         public static string GetTempDir()
         {
-            var outter = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!, Assembly.GetExecutingAssembly().GetName().Name + "_Temp");
+            var outter = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!, Assembly.GetExecutingAssembly().GetName().Name + "_Tempv2");
             CreateDirectory(outter);
             DirectoryPermissions(outter);
             return outter;

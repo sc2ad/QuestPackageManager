@@ -4,7 +4,6 @@ using QPM.Data;
 using QPM.Providers;
 using QuestPackageManager;
 using QuestPackageManager.Data;
-using SymLinker;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -12,13 +11,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Net;
-using System.Runtime.InteropServices;
-using System.Security.AccessControl;
-using System.Security.Principal;
-using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Threading.Tasks;
 
 namespace QPM
 {
@@ -26,9 +19,9 @@ namespace QPM
     {
         private readonly WebClient client;
         private readonly QPMApi api;
-        private readonly Dictionary<RestoredDependencyPair, SharedConfig> cached = new Dictionary<RestoredDependencyPair, SharedConfig>();
+        private readonly Dictionary<RestoredDependencyPair, SharedConfig> cached = new();
         private readonly AndroidMkProvider androidMkProvider;
-        private static readonly Linker linker = new();
+
 
         public RemoteQPMDependencyResolver(QPMApi api, AndroidMkProvider mkProvider)
         {
@@ -75,6 +68,10 @@ namespace QPM
                 var localDepConfig = configProvider.GetConfig();
                 if (localDepConfig is null || localDepConfig.Info is null || dependencyConfig.Config.Info.Version != localDepConfig.Info.Version)
                 {
+                    // We delete the directory since it requires the repo to be cloned
+                    // While cloning, we MUST have an empty directory
+                    // While it is unfortunate we download the .so before we clone, causing this to redownload the so
+                    // it's not a big deal and this explanation is just for anyone else that stumbles upon this
                     Utils.DeleteDirectory(downloadFolder);
                     return false;
                 }
@@ -91,7 +88,7 @@ namespace QPM
             // Followed by "git checkout branchName"
             // And "git submodule update --init --recursive"
             // branch is first determined from dependency AdditionalData
-            // TODO: Also add support/handling for tags, commits
+            // TODO: Also add support/handling for tags, commits <-- So much for this, Fern
             string branchName = DefaultBranch;
             if (!data.TryGetValue(SupportedPropertiesCommand.BranchName, out var branchNameE))
             {
@@ -110,10 +107,11 @@ namespace QPM
                 // This may not always be the case
                 try
                 {
-                    var proc = new ProcessStartInfo("git", "clone -b " + branchName + " " + url + ".git " + downloadFolder + " --recurse-submodules")
+                    var proc = new ProcessStartInfo("git", $"clone -b {branchName} {url}.git {downloadFolder} --recurse-submodules --no-tags")
                     {
                         CreateNoWindow = true,
-                        RedirectStandardOutput = true
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true
                     };
                     var p = Process.Start(proc)!;
                     p.OutputDataReceived += P_OutputDataReceived;
@@ -175,17 +173,22 @@ namespace QPM
                 var location = Path.Combine(root, item.GetString());
                 if (File.Exists(location))
                 {
-                    var dest = Path.Combine(dst, item.GetString());
-                    if (File.Exists(dest))
-                        File.Delete(dest);
-                    File.Copy(location, dest);
+                    var dest = Path.GetFullPath(Path.Combine(dst, item.GetString()));
+
+                    Utils.SymlinkOrCopyFile(location, dest);
                 }
                 else if (Directory.Exists(location))
                 {
-                    var dest = Path.Combine(dst, item.GetString());
+                    var dest = Path.GetFullPath(Path.Combine(dst, item.GetString()));
                     if (Directory.Exists(dest))
                         Utils.DeleteDirectory(dest);
-                    Utils.CopyDirectory(location, dest);
+
+
+                    // Create parent directories
+                    Utils.CreateDirectory(dest);
+                    Utils.DeleteDirectory(dest);
+
+                    Utils.SymLinkOrCopyDirectory(location, dest);
                 }
             }
         }
@@ -194,6 +197,7 @@ namespace QPM
         {
             var baseDst = Path.Combine(myConfig.DependenciesDir, sharedConfig.Config.Info.Id);
             var dst = Path.Combine(myConfig.DependenciesDir, sharedConfig.Config.Info.Id, sharedConfig.Config.SharedDir);
+            var dstExpanded = Path.GetFullPath(dst);
             var root = Utils.GetSubdir(downloadFolder);
             var src = Path.Combine(root, sharedConfig.Config.SharedDir);
             if (!Directory.Exists(dst) || !Utils.FolderHash(src).SequenceEqual(Utils.FolderHash(dst)))
@@ -201,8 +205,15 @@ namespace QPM
                 if (Directory.Exists(dst))
                     Utils.DeleteDirectory(dst);
                 Console.WriteLine($"Copying: {src} to: {dst}");
-                Utils.CopyDirectory(src, dst);
+
+                // Create parent directories
+                Utils.CreateDirectory(dst);
+                Utils.DeleteDirectory(dst);
+
+
+                Utils.SymLinkOrCopyDirectory(src, dstExpanded);
             }
+
 
             // Combine the two, if there are two
             // TODO: Add hashing for additional data
@@ -332,37 +343,35 @@ namespace QPM
 
             if (!(soName is null))
             {
-                var tempLoc = Path.Combine(Utils.GetTempDir(), soName);
+                var tempLoc = Path.Combine(Utils.GetCachedConfig(sharedConfig.Config.Info), soName);
                 var fileLoc = Path.Combine(myConfig.DependenciesDir, soName);
                 var fullFileLoc = Path.GetFullPath(fileLoc);
 
                 if (!File.Exists(fileLoc) || overrodeName)
                 {
-                    File.Delete(fileLoc);
                     // If we have a file here already, we simply perform the modifications and call it a day
                     // AND we are not a specifically named file (since if we are, we need to overwrite cache)
                     if (File.Exists(tempLoc) && !overrodeName)
                     {
                         // Make a symlink from the cache, or fallback to copy
                         // Copy the temp file to our current, then make sure we setup everything
-                        PlaceDep(tempLoc, fullFileLoc);
+                        Utils.SymlinkOrCopyFile(tempLoc, fullFileLoc);
                     }
                     else
                     {
-                        // We have to download
-                        File.Delete(tempLoc);
-                        Console.WriteLine($"Downloading so from: {soLink} to: {tempLoc}");
-                        client.DownloadFile(soLink, tempLoc);
+                        var tempDirLoc = Path.GetDirectoryName(tempLoc);
+                        if (tempDirLoc != null && !Directory.Exists(tempDirLoc))
+                            Utils.CreateDirectory(tempDirLoc);
 
-                        // Copy the existing file if it's not versioned
-                        if (overrodeName)
-                            File.Copy(tempLoc, fileLoc);
-                        else
+                        if (!File.Exists(tempLoc))
                         {
-                            // Make a symlink from the cache, or fallback to copy only for versioned libs
-                            // Copy the temp file to our current, then make sure we setup everything
-                            PlaceDep(tempLoc, fullFileLoc);
+                            Console.WriteLine($"Downloading so from: {soLink} to: {tempLoc}");
+                            client.DownloadFile(soLink, tempLoc);
                         }
+
+                        // Make a symlink from the cache, or fallback to copy
+                        // Copy the temp file to our current, then make sure we setup everything
+                        Utils.SymlinkOrCopyFile(tempLoc, fullFileLoc);
                     }
                 }
                 else
@@ -473,31 +482,6 @@ namespace QPM
             }
         }
 
-
-
-        private static void PlaceDep(string tempLoc, string fileLoc)
-        {
-            if (!linker.IsValid())
-            {
-                Console.Error.WriteLine($"Unable to use symlinks on {RuntimeInformation.OSDescription}, falling back to copy");
-                File.Copy(tempLoc, fileLoc);
-                return;
-            }
-
-            // Attempt to make symlinks to avoid unnecessary copy
-
-            var error = linker.CreateLink(tempLoc, fileLoc);
-
-            if (error == null)
-            {
-                Console.WriteLine($"Created symlink from {tempLoc} to {fileLoc}");
-                return;
-            }
-
-            Console.WriteLine($"Unable to create symlink due to: \"{error}\"\non {RuntimeInformation.OSDescription}, falling back to copy");
-            File.Copy(tempLoc, fileLoc);
-        }
-
         public void ResolveUniqueDependency(in Config myConfig, KeyValuePair<RestoredDependencyPair, SharedConfig> resolved)
         {
             // When we resolve a unique dependency, we copy over the headers.
@@ -510,7 +494,11 @@ namespace QPM
 
                 var url = conf.Config.Info.Url;
                 var outter = Utils.GetTempDir();
-                var downloadFolder = Path.Combine(outter, conf.Config.Info.Id);
+
+                var downloadFolder = Path.Combine(outter,conf.Config.Info.Id, conf.Config.Info.Version.ToString());
+
+                if (!Directory.Exists(downloadFolder))
+                    Utils.CreateDirectory(downloadFolder);
 
                 if (IsGithubLink(url))
                 {
