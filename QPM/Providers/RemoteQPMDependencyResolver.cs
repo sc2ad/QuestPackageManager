@@ -201,13 +201,11 @@ namespace QPM
             var src = Path.Combine(root, sharedConfig.Config.SharedDir);
             if (!Directory.Exists(dst) || !Utils.FolderHash(src).SequenceEqual(Utils.FolderHash(dst)))
             {
-                if (Directory.Exists(dst))
-                    Utils.DeleteDirectory(dst);
                 Console.WriteLine($"Copying: {src} to: {dst}");
 
-                // Create parent directories
-                Utils.CreateDirectory(dst);
-                Utils.DeleteDirectory(dst);
+                if (!Directory.Exists(baseDst))
+                    // Create parent directories
+                    Utils.CreateDirectory(baseDst);
 
 
                 Utils.SymLinkOrCopyDirectory(src, dstExpanded);
