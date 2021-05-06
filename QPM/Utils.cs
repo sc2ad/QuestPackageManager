@@ -227,25 +227,29 @@ namespace QPM
             return actualRoot;
         }
 
+        private static readonly string oldTempDir1 = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!, Assembly.GetExecutingAssembly().GetName().Name + "_Temp");
+        private static readonly string oldTempDir2 = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!, Assembly.GetExecutingAssembly().GetName().Name + "_Tempv2");
+        private static readonly string newTempDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), Assembly.GetExecutingAssembly().GetName().Name + "_Temp");
+
         public static void DeleteTempDir()
         {
-            var outter = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!, Assembly.GetExecutingAssembly().GetName().Name + "_Temp");
-            var outterv2 = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!, Assembly.GetExecutingAssembly().GetName().Name + "_Tempv2");
-            if (Directory.Exists(outter))
-                DeleteDirectory(outter);
+            if (Directory.Exists(oldTempDir1))
+                DeleteDirectory(oldTempDir1);
 
-            if (Directory.Exists(outterv2))
-                DeleteDirectory(outterv2);
+            if (Directory.Exists(oldTempDir2))
+                DeleteDirectory(oldTempDir2);
+
+            if (Directory.Exists(newTempDir))
+                DeleteDirectory(newTempDir);
         }
 
         public static string GetCachedConfig(PackageInfo packageInfo) => Path.Combine(GetTempDir(), packageInfo.Id, packageInfo.Version.ToString());
 
         public static string GetTempDir()
         {
-            var outter = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!, Assembly.GetExecutingAssembly().GetName().Name + "_Tempv2");
-            CreateDirectory(outter);
-            DirectoryPermissions(outter);
-            return outter;
+            CreateDirectory(newTempDir);
+            DirectoryPermissions(newTempDir);
+            return newTempDir;
         }
 
         public static string ReplaceFirst(this string str, string toFind, string toReplace)

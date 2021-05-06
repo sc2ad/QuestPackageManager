@@ -22,7 +22,6 @@ namespace QPM
         private readonly Dictionary<RestoredDependencyPair, SharedConfig> cached = new();
         private readonly AndroidMkProvider androidMkProvider;
 
-
         public RemoteQPMDependencyResolver(QPMApi api, AndroidMkProvider mkProvider)
         {
             client = new WebClient();
@@ -186,7 +185,6 @@ namespace QPM
                     // Create parent directories
                     Utils.CreateDirectory(dst);
 
-
                     Utils.SymLinkOrCopyDirectory(location, dest);
                 }
             }
@@ -207,10 +205,8 @@ namespace QPM
                     // Create parent directories
                     Utils.CreateDirectory(baseDst);
 
-
                 Utils.SymLinkOrCopyDirectory(src, dstExpanded);
             }
-
 
             // Combine the two, if there are two
             // TODO: Add hashing for additional data
@@ -336,7 +332,6 @@ namespace QPM
             WebClient client = new();
             // soName is dictated by the overriden name, if it exists. Otherwise, it is this.
             var soName = sharedConfig.Config.Info.GetSoName(out var overrodeName);
-
 
             if (!(soName is null))
             {
@@ -492,9 +487,9 @@ namespace QPM
                 var url = conf.Config.Info.Url;
                 var outter = Utils.GetTempDir();
 
-                // QPM_CacheV2/ depId / version
-                // Example: QPM_CacheV2 / codegen / 0.8.1
-                var downloadFolder = Path.Combine(outter,conf.Config.Info.Id, conf.Config.Info.Version.ToString());
+                // Example: QPM_Temp / codegen / 0.8.1 / repo
+                // We suffix repo here, since otherwise the .so files themselves get removed when we clone.
+                var downloadFolder = Path.Combine(outter, conf.Config.Info.Id, conf.Config.Info.Version.ToString(), "repo");
 
                 if (!Directory.Exists(downloadFolder))
                     Utils.CreateDirectory(downloadFolder);
