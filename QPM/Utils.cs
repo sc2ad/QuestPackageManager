@@ -243,9 +243,28 @@ namespace QPM
                 DeleteDirectory(newTempDir);
         }
 
-        public static string GetCachedConfig(PackageInfo packageInfo) => Path.Combine(GetTempDir(), packageInfo.Id, packageInfo.Version.ToString());
+        // Conversion from PackageInfo to Id/version directory under cache directory.
+        private static string GetCachedConfig(PackageInfo packageInfo) => Path.Combine(GetTempDir(), packageInfo.Id, packageInfo.Version.ToString());
 
-        public static string GetTempDir()
+        private const string libsFolder = "libs";
+        private const string sourceLocation = "src";
+
+        /// <summary>
+        /// Returns the provided library path from the <see cref="PackageInfo"/> and the library name.
+        /// </summary>
+        /// <param name="packageInfo"></param>
+        /// <returns></returns>
+        public static string GetLibrary(PackageInfo packageInfo, string libName) => Path.Combine(GetCachedConfig(packageInfo), libsFolder, libName);
+
+        /// <summary>
+        /// Returns the path to the source location for the provided <see cref="PackageInfo"/>.
+        /// </summary>
+        /// <param name="packageInfo"></param>
+        /// <returns></returns>
+        public static string GetSource(PackageInfo packageInfo) => Path.Combine(GetCachedConfig(packageInfo), sourceLocation);
+
+        // TODO: Make this configurable, QPM would have a config file that would be writable via `qpm cache set` or something similar
+        private static string GetTempDir()
         {
             CreateDirectory(newTempDir);
             DirectoryPermissions(newTempDir);

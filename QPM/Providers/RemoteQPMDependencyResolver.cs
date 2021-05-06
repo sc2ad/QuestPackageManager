@@ -335,7 +335,7 @@ namespace QPM
 
             if (!(soName is null))
             {
-                var tempLoc = Path.Combine(Utils.GetCachedConfig(sharedConfig.Config.Info), soName);
+                var tempLoc = Utils.GetLibrary(sharedConfig.Config.Info, soName);
                 var fileLoc = Path.Combine(myConfig.DependenciesDir, soName);
                 var fullFileLoc = Path.GetFullPath(fileLoc);
 
@@ -483,13 +483,9 @@ namespace QPM
             if (!data.TryGetValue(SupportedPropertiesCommand.LocalPath, out var localE))
             {
                 // If not local, perform remote obtain
-
                 var url = conf.Config.Info.Url;
-                var outter = Utils.GetTempDir();
 
-                // Example: QPM_Temp / codegen / 0.8.1 / repo
-                // We suffix repo here, since otherwise the .so files themselves get removed when we clone.
-                var downloadFolder = Path.Combine(outter, conf.Config.Info.Id, conf.Config.Info.Version.ToString(), "repo");
+                var downloadFolder = Utils.GetSource(conf.Config.Info);
 
                 if (!Directory.Exists(downloadFolder))
                     Utils.CreateDirectory(downloadFolder);
