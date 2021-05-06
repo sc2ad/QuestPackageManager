@@ -183,10 +183,9 @@ namespace QPM
                     if (Directory.Exists(dest))
                         Utils.DeleteDirectory(dest);
 
-
                     // Create parent directories
-                    Utils.CreateDirectory(dest);
-                    Utils.DeleteDirectory(dest);
+                    Utils.CreateDirectory(dst);
+
 
                     Utils.SymLinkOrCopyDirectory(location, dest);
                 }
@@ -495,6 +494,8 @@ namespace QPM
                 var url = conf.Config.Info.Url;
                 var outter = Utils.GetTempDir();
 
+                // QPM_CacheV2/ depId / version
+                // Example: QPM_CacheV2 / codegen / 0.8.1
                 var downloadFolder = Path.Combine(outter,conf.Config.Info.Id, conf.Config.Info.Version.ToString());
 
                 if (!Directory.Exists(downloadFolder))
