@@ -135,8 +135,10 @@ namespace QPM
             }
 
             // Attempt to make symlinks to avoid unnecessary copy
+            if (File.Exists(dest))
+                File.Delete(dest);
 
-            var error = linker.CreateLink(source, dest);
+            var error = linker.CreateLink(Path.GetFullPath(source), Path.GetFullPath(dest));
 
             if (error == null)
             {
@@ -145,8 +147,6 @@ namespace QPM
             }
 
             Console.WriteLine($"Unable to create symlink due to: \"{error}\" on {RuntimeInformation.OSDescription}, falling back to copy");
-            if (File.Exists(dest))
-                File.Delete(dest);
 
             File.Copy(source, dest);
             return false;
@@ -174,7 +174,7 @@ namespace QPM
                 DeleteDirectory(dst);
 
             // Attempt to make symlinks to avoid unnecessary copy
-            var error = linker.CreateLink(source, dst);
+            var error = linker.CreateLink(Path.GetFullPath(source), Path.GetFullPath(dst));
 
             if (error == null)
             {
