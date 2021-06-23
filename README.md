@@ -230,3 +230,8 @@ Now you should be all set to build! (You won't need to make these modifications 
 
 Coming soon, QPM will allow for plugins to allow for modifications of additional files, or perform additional actions for all commands.
 QPM will also allow plugins to add commands as well.
+Literally not for a long time though.
+
+## Issues
+
+DM `Sc2ad#8836` on Discord or something, idk
