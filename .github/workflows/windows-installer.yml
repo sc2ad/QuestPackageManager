@@ -13,10 +13,19 @@ jobs:
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: 5.0.102
-    - name: Run build script
-      run: ./buildInstaller.ps1
+    - name: Download Inno Setup
+      uses: suisei-cn/actions-download-file@v1
+      with:
+        url: https://jrsoftware.org/download.php/is.exe
+        target: ../
+    - name: Install Inno Setup
+      run: '../is.exe /VERYSILENT /NORESTART /ALLUSERS'
+    - name: Build QPM
+      run: dotnet publish -c Release -r win-x64
+    - name: Compile Installer
+      run: '& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /f installer/installer.iss'
     - name: Artifact Upload
       uses: actions/upload-artifact@v2
       with:
-        name: windows-installer
-        path: ./installer/windows-installer.exe
+        name: QPM-windows.exe
+        path: ./installer/QPM-windows.exe
