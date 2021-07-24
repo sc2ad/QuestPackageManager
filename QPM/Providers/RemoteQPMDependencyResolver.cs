@@ -392,6 +392,10 @@ namespace QPM
                 var mk = GetMk();
                 if (mk != null)
                 {
+                    string buildLine = sharedConfig.Config.Info.IsStaticLinking()
+                        ? "include $(PREBUILT_SHARED_LIBRARY)"
+                        : "include $(PREBUILT_STATIC_LIBRARY)";
+
                     var module = new Module
                     {
                         PrefixLines = new List<string>
@@ -404,7 +408,7 @@ namespace QPM
                         fileLoc.Replace('\\', '/')
                     },
                         ExportIncludes = Path.Combine(myConfig.DependenciesDir, sharedConfig.Config.Info.Id).Replace('\\', '/'),
-                        BuildLine = "include $(PREBUILT_SHARED_LIBRARY)"
+                        BuildLine = buildLine
                     };
                     if (overrodeName)
                         module.Id = soName.ReplaceFirst("lib", "").ReplaceLast(".so", "");
