@@ -411,7 +411,7 @@ namespace QPM
                         BuildLine = buildLine
                     };
                     if (overrodeName)
-                        module.Id = soName.ReplaceFirst("lib", "").ReplaceLast(".so", "");
+                        module.Id = soName.ReplaceFirst("lib", "").ReplaceLast(".so", "").ReplaceLast(".a","");
                     else
                         module.EnsureIdIs(sharedConfig.Config.Info.Id, sharedConfig.Config.Info.Version);
                     var main = mk.Modules.LastOrDefault();

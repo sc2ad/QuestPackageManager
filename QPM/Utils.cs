@@ -302,7 +302,10 @@ namespace QPM
                 overriden = true;
                 return name.GetString();
             }
-            return "lib" + (info.Id + "_" + info.Version.ToString()).Replace('.', '_') + ".so";
+
+            string ext = IsStaticLinking(info) ? ".a" : ".so";
+
+            return "lib" + (info.Id + "_" + info.Version.ToString()).Replace('.', '_') + ext;
         }
 
         public static bool IsStaticLinking(this PackageInfo info) => info.AdditionalData.TryGetValue(SupportedPropertiesCommand.StaticLinking, out var elem) && elem.GetBoolean();
