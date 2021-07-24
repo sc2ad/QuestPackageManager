@@ -29,6 +29,10 @@ namespace QPM.Commands
         [Property("Specify that this package is headers only and does not contain a .so file", "package", Type = "bool")]
         public const string HeadersOnly = "headersOnly";
 
+
+        [Property("Specify that this package is static linking", "package", Type = "bool")]
+        public const string StaticLinking = "staticLinking";
+
         [Property("Specify the download link for a release .so file", "package")]
         public const string ReleaseSoLink = "soLink";
 

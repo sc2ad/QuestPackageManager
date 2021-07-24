@@ -304,5 +304,7 @@ namespace QPM
             }
             return "lib" + (info.Id + "_" + info.Version.ToString()).Replace('.', '_') + ".so";
         }
+
+        public static bool IsStaticLinking(this PackageInfo info) => info.AdditionalData.TryGetValue(SupportedPropertiesCommand.StaticLinking, out var elem) && elem.GetBoolean();
     }
 }

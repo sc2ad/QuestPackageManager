@@ -145,6 +145,12 @@ namespace QPM.Providers
                                 module.SharedLibs.Clear();
                             module.SharedLibs.AddRange(ParseLine(parsed));
                         }
+                        else if (line.StartsWith("LOCAL_STATIC_LIBRARIES"))
+                        {
+                            if (type == Concat.Set)
+                                module.StaticLibs.Clear();
+                            module.StaticLibs.AddRange(ParseLine(parsed));
+                        }
                         else if (line.StartsWith("LOCAL_LDLIBS"))
                         {
                             if (type == Concat.Set)
@@ -243,6 +249,9 @@ namespace QPM.Providers
                 if (m.SharedLibs.Any())
                     foreach (var lib in m.SharedLibs)
                         sb.AppendLine("LOCAL_SHARED_LIBRARIES += " + lib);
+                if (m.StaticLibs.Any())
+                    foreach (var lib in m.StaticLibs)
+                        sb.AppendLine("LOCAL_STATIC_LIBRARIES += " + lib);
                 if (m.LdLibs.Any())
                     sb.AppendLine("LOCAL_LDLIBS += " + string.Join(' ', m.LdLibs));
                 if (m.CFlags.Any())

@@ -413,58 +413,26 @@ namespace QPM
                     var main = mk.Modules.LastOrDefault();
                     if (main != null)
                     {
-                        // TODO: Probably a stupid check, but should be backed up (?) so should be more or less ok?
-                        // For matching modules with names: beatsaber-hook_0_3_0 for replacing with beatsaber-hook_0_4_4
-                        int sharedLib = main.SharedLibs.FindIndex(s => overrodeName ? s.TrimStart().Equals(module.Id, StringComparison.OrdinalIgnoreCase) : s.TrimStart().StartsWith(sharedConfig.Config.Info.Id, StringComparison.OrdinalIgnoreCase));
-                        if (sharedLib < 0)
+                        // Should this be its own method?
+                        void HandleLibs(List<string> libsList)
                         {
-                            // module.Id is forcibly set just above
-                            main.SharedLibs.Add(module.Id!);
-                            var matchingModuleIndex = mk.Modules.FindIndex(m => (overrodeName ? m.Id?.TrimStart().Equals(module.Id, StringComparison.OrdinalIgnoreCase) : m.Id?.TrimStart().StartsWith(sharedConfig.Config.Info.Id, StringComparison.OrdinalIgnoreCase)) ?? false);
-                            if (matchingModuleIndex == -1)
+                            // TODO: Probably a stupid check, but should be backed up (?) so should be more or less ok?
+                            // For matching modules with names: beatsaber-hook_0_3_0 for replacing with beatsaber-hook_0_4_4
+                            int lib = libsList.FindIndex(s =>
+                                overrodeName
+                                    ? s.TrimStart().Equals(module.Id, StringComparison.OrdinalIgnoreCase)
+                                    : s.TrimStart().StartsWith(sharedConfig.Config.Info.Id,
+                                        StringComparison.OrdinalIgnoreCase));
+
+                            if (lib < 0)
                             {
-                                // Add if it didn't already exist
-                                mk.Modules.Insert(mk.Modules.Count - 1, module);
-                            }
-                            else
-                            {
-                                // Overwrite if it does
-                                var matchingModule = mk.Modules[matchingModuleIndex];
-                                matchingModule.PrefixLines = module.PrefixLines;
-                                matchingModule.Id = module.Id;
-                                matchingModule.Src = module.Src;
-                                matchingModule.ExportIncludes = module.ExportIncludes;
-                            }
-                        }
-                        else
-                        {
-                            // If we find a matching module, we need to see if our version is higher than it.
-                            // If it is, we overwrite. Otherwise, do nothing.
-                            // Also, if the src matches exactly, we don't have to worry.
-                            var exists = main.SharedLibs[sharedLib];
-                            var version = new SemVer.Version(0, 0, 0);
-                            if (!overrodeName)
-                            {
-                                exists = exists.TrimStart();
-                                if (exists.Length > sharedConfig.Config.Info.Id.Length + 1)
-                                    exists = exists[(sharedConfig.Config.Info.Id.Length + 1)..];
-                            }
-                            else
-                            {
-                                exists = exists.TrimStart()[module.Id!.Length..];
-                            }
-                            try
-                            {
-                                version = new SemVer.Version(exists.Replace('_', '.'));
-                            }
-                            catch (ArgumentException)
-                            {
-                                // If we cannot parse the version, always overwrite.
-                            }
-                            if (version < sharedConfig.Config.Info.Version)
-                            {
-                                // If the version we want to add is greater than the version already in there, we replace it.
-                                var matchingModuleIndex = mk.Modules.FindIndex(m => (overrodeName ? m.Id?.TrimStart().Equals(module.Id, StringComparison.OrdinalIgnoreCase) : m.Id?.TrimStart().StartsWith(sharedConfig.Config.Info.Id, StringComparison.OrdinalIgnoreCase)) ?? false);
+                                // module.Id is forcibly set just above
+                                libsList.Add(module.Id!);
+                                var matchingModuleIndex = mk.Modules.FindIndex(m =>
+                                    (overrodeName
+                                        ? m.Id?.TrimStart().Equals(module.Id, StringComparison.OrdinalIgnoreCase)
+                                        : m.Id?.TrimStart().StartsWith(sharedConfig.Config.Info.Id,
+                                            StringComparison.OrdinalIgnoreCase)) ?? false);
                                 if (matchingModuleIndex == -1)
                                 {
                                     // Add if it didn't already exist
@@ -479,8 +447,71 @@ namespace QPM
                                     matchingModule.Src = module.Src;
                                     matchingModule.ExportIncludes = module.ExportIncludes;
                                 }
-                                main.SharedLibs[sharedLib] = module.Id!;
                             }
+                            else
+                            {
+                                // If we find a matching module, we need to see if our version is higher than it.
+                                // If it is, we overwrite. Otherwise, do nothing.
+                                // Also, if the src matches exactly, we don't have to worry.
+                                var exists = libsList[lib];
+                                var version = new SemVer.Version(0, 0, 0);
+                                if (!overrodeName)
+                                {
+                                    exists = exists.TrimStart();
+                                    if (exists.Length > sharedConfig.Config.Info.Id.Length + 1)
+                                        exists = exists[(sharedConfig.Config.Info.Id.Length + 1)..];
+                                }
+                                else
+                                {
+                                    exists = exists.TrimStart()[module.Id!.Length..];
+                                }
+
+                                try
+                                {
+                                    version = new SemVer.Version(exists.Replace('_', '.'));
+                                }
+                                catch (ArgumentException)
+                                {
+                                    // If we cannot parse the version, always overwrite.
+                                }
+
+                                if (version < sharedConfig.Config.Info.Version)
+                                {
+                                    // If the version we want to add is greater than the version already in there, we replace it.
+                                    var matchingModuleIndex = mk.Modules.FindIndex(m =>
+                                        (overrodeName
+                                            ? m.Id?.TrimStart().Equals(module.Id, StringComparison.OrdinalIgnoreCase)
+                                            : m.Id?.TrimStart().StartsWith(sharedConfig.Config.Info.Id,
+                                                StringComparison.OrdinalIgnoreCase)) ?? false);
+                                    if (matchingModuleIndex == -1)
+                                    {
+                                        // Add if it didn't already exist
+                                        mk.Modules.Insert(mk.Modules.Count - 1, module);
+                                    }
+                                    else
+                                    {
+                                        // Overwrite if it does
+                                        var matchingModule = mk.Modules[matchingModuleIndex];
+                                        matchingModule.PrefixLines = module.PrefixLines;
+                                        matchingModule.Id = module.Id;
+                                        matchingModule.Src = module.Src;
+                                        matchingModule.ExportIncludes = module.ExportIncludes;
+                                    }
+
+                                    libsList[lib] = module.Id!;
+                                }
+                            }
+                        }
+
+                        // Only add to list if applicable.
+                        // If static list but not static lib
+                        if (!sharedConfig.Config.Info.IsStaticLinking())
+                        {
+                            HandleLibs(main.StaticLibs);
+                        }
+                        else
+                        {
+                            HandleLibs(main.SharedLibs);
                         }
                     }
                 }
