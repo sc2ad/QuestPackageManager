@@ -393,8 +393,8 @@ namespace QPM
                 if (mk != null)
                 {
                     string buildLine = sharedConfig.Config.Info.IsStaticLinking()
-                        ? "include $(PREBUILT_SHARED_LIBRARY)"
-                        : "include $(PREBUILT_STATIC_LIBRARY)";
+                        ? "include $(PREBUILT_STATIC_LIBRARY)"
+                        : "include $(PREBUILT_SHARED_LIBRARY)";
 
                     var module = new Module
                     {
@@ -509,7 +509,7 @@ namespace QPM
 
                         // Only add to list if applicable.
                         // If static list but not static lib
-                        if (!sharedConfig.Config.Info.IsStaticLinking())
+                        if (sharedConfig.Config.Info.IsStaticLinking())
                         {
                             HandleLibs(main.StaticLibs);
                         }
