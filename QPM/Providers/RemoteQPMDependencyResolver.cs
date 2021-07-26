@@ -180,7 +180,6 @@ namespace QPM
                 }
                 else if (Directory.Exists(location))
                 {
-
                     var dest = Path.GetFullPath(Path.Combine(dst, item.GetString()!));
                     // Get the parent directory
                     var destFullParent =
@@ -519,7 +518,7 @@ namespace QPM
                 var externalCfg = externalCfgProvider.GetConfig();
                 if (externalCfg is null || externalCfg.Info is null || conf.Config.Info.Version != externalCfg.Info.Version || !conf.Config.Info.Version.Equals(externalCfg.Info.Version))
                 {
-                    throw new DependencyException($"Could not resolve dependency: {conf.Config.Info.Id}! Downloaded config does not match obtained config!");
+                    throw new DependencyException($"Could not resolve dependency: {conf.Config.Info.Id}! Downloaded config {(externalCfg is not null && externalCfg.Info is not null ? externalCfg.Info.Version : "NULL")} does not match obtained config {conf.Config.Info.Version}!");
                 }
                 CopyTo(downloadFolder, myConfig, conf, data);
             }
