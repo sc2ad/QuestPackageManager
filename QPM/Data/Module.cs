@@ -43,7 +43,7 @@ namespace QPM.Data
 
         public void EnsureIdIs(string id, SemVer.Version version) => Id = id + "_" + version.ToString().Replace('.', '_');
 
-        public void RemoveSharedLibrary(string id)
+        public void RemoveLibrary(string id)
         {
             SharedLibs.RemoveAll(l => l.Equals(id, StringComparison.OrdinalIgnoreCase));
             StaticLibs.RemoveAll(l => l.Equals(id, StringComparison.OrdinalIgnoreCase));

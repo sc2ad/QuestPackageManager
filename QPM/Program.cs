@@ -94,7 +94,7 @@ namespace QPM
                 var module = mk.Modules.LastOrDefault();
                 if (module != null)
                 {
-                    module.RemoveSharedLibrary(dependency.Id);
+                    module.RemoveLibrary(dependency.Id);
                 }
             }
             // TODO: Remove from bmbfmod.json
@@ -146,7 +146,7 @@ namespace QPM
                 {
                     module.AddDefine("VERSION", version.ToString());
                     if (overrodeName)
-                        module.Id = overridenName.GetString().ReplaceFirst("lib", "").ReplaceLast(".so", "").ReplaceFirst(".a","");
+                        module.Id = overridenName.GetString().ReplaceFirst("lib", "").ReplaceLast(".so", "").ReplaceLast(".a","");
                     else
                         module.EnsureIdIs(conf.Info.Id, version);
                     androidMkProvider.SerializeFile(mk);
