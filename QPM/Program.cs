@@ -94,7 +94,7 @@ namespace QPM
                 var module = mk.Modules.LastOrDefault();
                 if (module != null)
                 {
-                    module.RemoveSharedLibrary(dependency.Id);
+                    module.RemoveLibrary(dependency.Id);
                 }
             }
             // TODO: Remove from bmbfmod.json
@@ -146,7 +146,7 @@ namespace QPM
                 {
                     module.AddDefine("VERSION", version.ToString());
                     if (overrodeName)
-                        module.Id = overridenName.GetString().ReplaceFirst("lib", "").ReplaceLast(".so", "");
+                        module.Id = overridenName.GetString().ReplaceFirst("lib", "").ReplaceLast(".so", "").ReplaceLast(".a","");
                     else
                         module.EnsureIdIs(conf.Info.Id, version);
                     androidMkProvider.SerializeFile(mk);
@@ -203,7 +203,7 @@ namespace QPM
                     {
                         if (cfg.Info.AdditionalData.TryGetValue(SupportedPropertiesCommand.OverrideSoName, out var overridenName))
                         {
-                            module.Id = overridenName.GetString().ReplaceFirst("lib", "").ReplaceLast(".so", "");
+                            module.Id = overridenName.GetString().ReplaceFirst("lib", "").ReplaceLast(".so", "").ReplaceLast(".a","");
                         }
                         else
                             module.EnsureIdIs(info.Id, info.Version);
@@ -245,7 +245,7 @@ namespace QPM
                 {
                     module.AddDefine("ID", id);
                     if (conf.Info.AdditionalData.TryGetValue(SupportedPropertiesCommand.OverrideSoName, out var overridenName))
-                        module.Id = overridenName.GetString().Replace("lib", "").Replace(".so", "");
+                        module.Id = overridenName.GetString().Replace("lib", "").Replace(".so", "").ReplaceLast(".a","");
                     else
                         module.EnsureIdIs(id, conf.Info.Version);
                     androidMkProvider.SerializeFile(mk);

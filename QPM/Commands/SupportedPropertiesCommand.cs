@@ -26,10 +26,14 @@ namespace QPM.Commands
         [Property("Branch name of a Github repo. Only used when a valid github url is provided", "package", "dependency")]
         public const string BranchName = "branchName";
 
-        [Property("Specify that this package is headers only and does not contain a .so file", "package", Type = "bool")]
+        [Property("Specify that this package is headers only and does not contain a .so or .a file", "package", Type = "bool")]
         public const string HeadersOnly = "headersOnly";
 
-        [Property("Specify the download link for a release .so file", "package")]
+
+        [Property("Specify that this package is static linking", "package", Type = "bool")]
+        public const string StaticLinking = "staticLinking";
+
+        [Property("Specify the download link for a release .so or .a file", "package")]
         public const string ReleaseSoLink = "soLink";
 
         [Property("Specify any additional files to be downloaded", "package", "dependency", Type = "array[string]")]
@@ -38,13 +42,13 @@ namespace QPM.Commands
         [Property("Copy a dependency from a location that is local to this root path instead of from a remote url", "dependency")]
         public const string LocalPath = "localPath";
 
-        [Property("Specify the download link for a debug .so files (usually from the obj folder)", "package")]
+        [Property("Specify the download link for a debug .so or .a files (usually from the obj folder)", "package")]
         public const string DebugSoLink = "debugSoLink";
 
-        [Property("Specify if a dependency should download a release .so file. Defaults to false", "dependency", Type = "bool")]
+        [Property("Specify if a dependency should download a release .so or .a file. Defaults to false", "dependency", Type = "bool")]
         public const string UseReleaseSo = "useRelease";
 
-        [Property("Override the downloaded .so filename with this name instead.", "package")]
+        [Property("Override the downloaded .so or .a filename with this name instead.", "package")]
         public const string OverrideSoName = "overrideSoName";
 
         [Property("Provide various download links of differing styles. Styles are appended to module names.", "package", Type = "array[object{string name, string soLink, string debugSoLink}]")]
