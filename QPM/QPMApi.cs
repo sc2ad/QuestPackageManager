@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -35,6 +36,7 @@ namespace QPM
             {
                 BaseAddress = ApiUrl
             };
+            client.Headers.Add(HttpRequestHeader.UserAgent, "QPM_" + Assembly.GetCallingAssembly().GetName().Version?.ToString());
         }
 
         public List<string> GetAllPackages()
