@@ -137,7 +137,7 @@ namespace QPM
                 // Try to download dependency
                 try
                 {
-                    conf = api.GetLatestConfig(dependency, pair.Version);
+                    conf = api.GetLatestConfig(dependency, pair.Version).Result;
                     Console.WriteLine($"Got config for: {dependency.Id} version: {pair.Version}");
                 }
                 catch (WebException)

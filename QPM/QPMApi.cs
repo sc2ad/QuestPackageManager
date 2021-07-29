@@ -3,6 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
@@ -27,35 +29,36 @@ namespace QPM
         private const string ApiUrl = "https://qpackages.com";
         private const string AuthorizationHeader = "not that i can come up with";
 
-        private readonly WebClient client;
+        private readonly HttpClient client;
 
         public QPMApi(IConfigProvider configProvider)
         {
             this.configProvider = configProvider;
-            client = new WebClient
+            client = new HttpClient
             {
-                BaseAddress = ApiUrl
+                BaseAddress = new Uri(ApiUrl),
+                Timeout = TimeSpan.FromSeconds(60)
             };
-            client.Headers.Add(HttpRequestHeader.UserAgent, "QPM_" + Assembly.GetCallingAssembly().GetName().Version?.ToString());
+            client.DefaultRequestHeaders.Add("User-Agent", "QPM_" + Assembly.GetCallingAssembly().GetName().Version?.ToString());
         }
 
-        public List<string> GetAllPackages()
+        public async Task<List<string>?> GetAllPackages()
         {
-            var s = client.DownloadString("/");
+            var s = await client.GetStringAsync("/").ConfigureAwait(false);
             return JsonSerializer.Deserialize<List<string>>(s);
         }
 
-        public List<ModPair> GetAll(string id, uint limit = 0)
+        public async Task<List<ModPair>?> GetAll(string id, uint limit = 0)
         {
             if (string.IsNullOrEmpty(id))
                 return null;
             if (limit == 1)
                 limit = 0;
-            var s = client.DownloadString($"/{id}/?req=*&limit={limit}");
+            var s = await client.GetStringAsync($"/{id}/?req=*&limit={limit}").ConfigureAwait(false);
             return JsonSerializer.Deserialize<List<ModPair>>(s);
         }
 
-        public ModPair GetLatest(string id, SemVer.Range range = null)
+        public async Task<ModPair?> GetLatest(string id, SemVer.Range? range = null)
         {
             if (range is null)
                 range = new SemVer.Range("*");
@@ -78,36 +81,43 @@ namespace QPM
                     rangeStr = rangeStr.Substring(0, ind) + "," + rangeStr.Substring(ind);
                 }
             }
-            var s = client.DownloadString($"/{id}?req={rangeStr}");
+            var s = await client.GetStringAsync($"/{id}?req={rangeStr}").ConfigureAwait(false);
             return JsonSerializer.Deserialize<ModPair>(s);
         }
 
-        public ModPair GetLatest(Dependency d, SemVer.Version specific = null) => specific != null ? GetLatest(d.Id, new SemVer.Range("=" + specific)) : GetLatest(d.Id, d.VersionRange);
+        public async Task<ModPair?> GetLatest(Dependency d, SemVer.Version? specific = null) => specific != null ? await GetLatest(d.Id, new SemVer.Range("=" + specific)).ConfigureAwait(false) : await GetLatest(d.Id!, d.VersionRange).ConfigureAwait(false);
 
-        public SharedConfig GetLatestConfig(Dependency d, SemVer.Version specific = null)
+        public async Task<SharedConfig?> GetLatestConfig(Dependency d, SemVer.Version? specific = null)
         {
-            var pair = GetLatest(d, specific);
-            return GetConfig(pair.Id, pair.Version);
+            var pair = await GetLatest(d, specific).ConfigureAwait(false);
+            if (pair is null)
+                return null;
+            return await GetConfig(pair.Id, pair.Version).ConfigureAwait(false);
         }
 
-        public SharedConfig GetConfig(string id, SemVer.Version version)
+        public async Task<SharedConfig?> GetConfig(string id, SemVer.Version version)
         {
             if (string.IsNullOrEmpty(id))
                 return null;
             if (version is null)
                 return null;
-            var s = client.DownloadString($"/{id}/{version}");
+            var s = await client.GetStringAsync($"/{id}/{version}").ConfigureAwait(false);
             return configProvider.From(s);
         }
 
-        public void Push(SharedConfig config)
+        public async Task Push(SharedConfig config)
         {
             if (config is null)
                 throw new ArgumentNullException(nameof(config));
             // We don't perform any validity here, simply ship it away
             var s = configProvider.ToString(config);
-            client.Headers.Add(HttpRequestHeader.Authorization, AuthorizationHeader);
-            client.UploadString($"/{config.Config.Info.Id}/{config.Config.Info.Version}", s);
+            var request = new HttpRequestMessage(HttpMethod.Post, $"/{config.Config!.Info!.Id}/{config.Config.Info.Version}")
+            {
+                Content = new StringContent(s)
+            };
+            request.Headers.Add("Authorization", AuthorizationHeader);
+
+            await client.SendAsync(request).ConfigureAwait(false);
         }
     }
 }
