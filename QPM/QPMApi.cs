@@ -37,7 +37,7 @@ namespace QPM
             client = new HttpClient
             {
                 BaseAddress = new Uri(ApiUrl),
-                Timeout = TimeSpan.FromSeconds(60)
+                Timeout = TimeSpan.FromSeconds(300)
             };
             client.DefaultRequestHeaders.Add("User-Agent", "QPM_" + Assembly.GetCallingAssembly().GetName().Version?.ToString());
         }
@@ -71,21 +71,21 @@ namespace QPM
             var ind = rangeStr.IndexOf('<');
             if (ind > 1)
             {
-                rangeStr = rangeStr.Substring(0, ind) + "," + rangeStr.Substring(ind);
+                rangeStr = rangeStr.Substring(0, ind) + "," + rangeStr[ind..];
             }
             else
             {
                 ind = rangeStr.IndexOf('>');
                 if (ind > 1)
                 {
-                    rangeStr = rangeStr.Substring(0, ind) + "," + rangeStr.Substring(ind);
+                    rangeStr = rangeStr.Substring(0, ind) + "," + rangeStr[ind..];
                 }
             }
             var s = await client.GetStringAsync($"/{id}?req={rangeStr}").ConfigureAwait(false);
             return JsonSerializer.Deserialize<ModPair>(s);
         }
 
-        public async Task<ModPair?> GetLatest(Dependency d, SemVer.Version? specific = null) => specific != null ? await GetLatest(d.Id, new SemVer.Range("=" + specific)).ConfigureAwait(false) : await GetLatest(d.Id!, d.VersionRange).ConfigureAwait(false);
+        public async Task<ModPair?> GetLatest(Dependency d, SemVer.Version? specific = null) => specific != null ? await GetLatest(d.Id!, new SemVer.Range("=" + specific)).ConfigureAwait(false) : await GetLatest(d.Id!, d.VersionRange).ConfigureAwait(false);
 
         public async Task<SharedConfig?> GetLatestConfig(Dependency d, SemVer.Version? specific = null)
         {
