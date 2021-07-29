@@ -138,6 +138,7 @@ namespace QPM
                 try
                 {
                     conf = api.GetLatestConfig(dependency, pair.Version);
+                    Console.WriteLine($"Got config for: {dependency.Id} version: {pair.Version}");
                 }
                 catch (WebException)
                 {
@@ -410,7 +411,7 @@ namespace QPM
                         BuildLine = buildLine
                     };
                     if (overrodeName)
-                        module.Id = soName.ReplaceFirst("lib", "").ReplaceLast(".so", "").ReplaceLast(".a","");
+                        module.Id = soName.ReplaceFirst("lib", "").ReplaceLast(".so", "").ReplaceLast(".a", "");
                     else
                         module.EnsureIdIs(sharedConfig.Config.Info.Id, sharedConfig.Config.Info.Version);
                     var main = mk.Modules.LastOrDefault();
