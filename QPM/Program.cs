@@ -28,7 +28,8 @@ namespace QPM
         typeof(SupportedPropertiesCommand),
         typeof(CacheCommand),
         typeof(ClearCommand),
-        typeof(VersionCommand)
+        typeof(VersionCommand),
+        typeof(ConfigCommand)
     )]
     internal class Program
     {
