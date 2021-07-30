@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.Versioning;
 using System.Text.Json;
@@ -46,17 +47,19 @@ namespace QPM
         private static AndroidMkProvider androidMkProvider;
         private static QPMApi api;
 
-        private const string configPath = "appsettings.json";
+        private static readonly string configPath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!, "appsettings.json");
 
         private static void LoadConfig()
         {
             if (!File.Exists(configPath))
             {
+                Console.WriteLine($"Creating config at: {configPath}");
                 // Write default settings always
                 File.WriteAllText(configPath, JsonSerializer.Serialize(Config, new JsonSerializerOptions { WriteIndented = true }));
             }
             else
             {
+                Console.WriteLine($"Found config at: {configPath}");
                 var tmp = JsonSerializer.Deserialize<QPMConfig>(File.ReadAllText(configPath));
                 if (tmp is not null)
                     Config = tmp;

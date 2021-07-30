@@ -145,7 +145,6 @@ namespace QPM
                 try
                 {
                     conf = await api.GetLatestConfig(dependency, pair.Version).ConfigureAwait(false);
-                    Console.WriteLine($"Got config for: {dependency.Id} version: {pair.Version}");
                 }
                 catch (WebException)
                 {
