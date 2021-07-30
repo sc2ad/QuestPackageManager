@@ -13,7 +13,7 @@ namespace QPM.Commands
     [Command("restore", Description = "Restore and resolve all dependencies from the package")]
     internal class RestoreCommand
     {
-        private void OnExecute()
+        private async Task OnExecute()
         {
             var config = Program.configProvider.GetConfig();
             if (config is null)
@@ -22,7 +22,7 @@ namespace QPM.Commands
             Utils.CreateDirectory(Path.Combine(Environment.CurrentDirectory, config.SharedDir));
             Utils.CreateDirectory(Path.Combine(Environment.CurrentDirectory, config.DependenciesDir));
             // We want to delete any existing libs that we no longer need
-            var deps = Program.RestoreHandler.CollectDependencies();
+            var deps = await Program.RestoreHandler.CollectDependencies().ConfigureAwait(false);
             // Holds all .so files that have been mapped to. False indicates the file should be deleted.
             var existingDeps = Directory.EnumerateFiles(config.DependenciesDir).ToDictionary(s => s, s => false);
             foreach (var d in deps)
@@ -60,7 +60,7 @@ namespace QPM.Commands
                 if (!p.Value)
                     File.Delete(p.Key);
             }
-            Program.RestoreHandler.Restore();
+            await Program.RestoreHandler.Restore().ConfigureAwait(false);
             // Write Android.mk
             Utils.WriteSuccess();
         }

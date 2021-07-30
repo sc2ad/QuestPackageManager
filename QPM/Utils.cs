@@ -100,8 +100,10 @@ namespace QPM
                 File.SetAttributes(file, FileAttributes.Normal);
                 File.Delete(file);
             }
-            var info = new DirectoryInfo(path);
-            info.Attributes = FileAttributes.Normal;
+            _ = new DirectoryInfo(path)
+            {
+                Attributes = FileAttributes.Normal
+            };
             try
             {
                 Directory.Delete(path);
@@ -126,6 +128,11 @@ namespace QPM
         {
             if (File.Exists(dest))
                 File.Delete(dest);
+            if (!Program.Config.UseSymlinks)
+            {
+                File.Copy(source, dest);
+                return false;
+            }
 
             if (!linker.IsValid())
             {
@@ -135,12 +142,9 @@ namespace QPM
             }
 
             // Attempt to make symlinks to avoid unnecessary copy
-            if (File.Exists(dest))
-                File.Delete(dest);
-
             var error = linker.CreateLink(Path.GetFullPath(source), Path.GetFullPath(dest));
 
-            if (error == null)
+            if (error is null)
             {
                 Console.WriteLine($"Created symlink from {source} to {dest}");
                 return true;
@@ -163,6 +167,13 @@ namespace QPM
         public static bool SymLinkOrCopyDirectory(string source, string dst, bool recurse = true,
             Action<string>? onFileCopied = null)
         {
+            if (!Program.Config.UseSymlinks)
+            {
+                if (Directory.Exists(dst))
+                    DeleteDirectory(dst);
+                CopyDirectory(source, dst, recurse, onFileCopied);
+                return false;
+            }
             if (!linker.IsValid())
             {
                 Console.Error.WriteLine($"Unable to use symlinks on {RuntimeInformation.OSDescription}, falling back to copy");
@@ -191,7 +202,7 @@ namespace QPM
 
         public static void CopyDirectory(string source, string dst, bool recurse = true, Action<string>? onFileCopied = null)
         {
-            DirectoryInfo dir = new DirectoryInfo(source);
+            DirectoryInfo dir = new(source);
             if (!Directory.Exists(dst))
                 Directory.CreateDirectory(dst);
 
@@ -241,6 +252,9 @@ namespace QPM
 
             if (Directory.Exists(newTempDir))
                 DeleteDirectory(newTempDir);
+
+            if (Directory.Exists(Program.Config.CachePath))
+                DeleteDirectory(Program.Config.CachePath);
         }
 
         // Conversion from PackageInfo to Id/version directory under cache directory.
@@ -266,9 +280,9 @@ namespace QPM
         // TODO: Make this configurable, QPM would have a config file that would be writable via `qpm cache set` or something similar
         private static string GetTempDir()
         {
-            CreateDirectory(newTempDir);
-            DirectoryPermissions(newTempDir);
-            return newTempDir;
+            CreateDirectory(Program.Config.CachePath);
+            DirectoryPermissions(Program.Config.CachePath);
+            return Program.Config.CachePath;
         }
 
         public static string ReplaceFirst(this string str, string toFind, string toReplace)

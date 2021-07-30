@@ -23,9 +23,9 @@ namespace QPM.Commands
             }
         }
 
-        private void OnExecute()
+        private async Task OnExecute()
         {
-            var outp = Program.RestoreHandler.CollectDependencies();
+            var outp = await Program.RestoreHandler.CollectDependencies().ConfigureAwait(false);
             var collapsed = RestoreHandler.CollapseDependencies(outp);
             foreach (var pair in collapsed)
             {

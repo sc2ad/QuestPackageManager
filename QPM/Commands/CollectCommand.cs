@@ -22,9 +22,9 @@ namespace QPM.Commands
             }
         }
 
-        private void OnExecute()
+        private async Task OnExecute()
         {
-            var outp = Program.RestoreHandler.CollectDependencies();
+            var outp = await Program.RestoreHandler.CollectDependencies().ConfigureAwait(false);
             foreach (var pair in outp)
             {
                 Console.WriteLine($"{PrintRestoredDependency(pair.Key)} (config: {pair.Value.Config.Info.Version}, {pair.Value.RestoredDependencies.Count} restored dependencies)");

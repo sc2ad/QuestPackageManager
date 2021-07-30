@@ -26,7 +26,7 @@ namespace QuestPackageManager
             this.dependencyResolver = dependencyResolver;
         }
 
-        private void CollectDependencies(string thisId, ref Dictionary<RestoredDependencyPair, SharedConfig> myDependencies, RestoredDependencyPair pair)
+        private async Task CollectDependencies(string thisId, Dictionary<RestoredDependencyPair, SharedConfig> myDependencies, RestoredDependencyPair pair)
         {
             // pair contains simply a Dependency in most cases, but if it contains a version already, then we map that version to a SharedConfig
             // Null assertions
@@ -40,7 +40,7 @@ namespace QuestPackageManager
             if (thisId.Equals(d.Id, StringComparison.OrdinalIgnoreCase))
                 throw new DependencyException($"Recursive dependency! Tried to get dependency: {d.Id}, but {thisId} matches {d.Id}!");
             // We want to convert our uri into a config file
-            var depConfig = dependencyResolver.GetSharedConfig(pair);
+            var depConfig = await dependencyResolver.GetSharedConfig(pair).ConfigureAwait(false);
             if (depConfig is null)
                 throw new ConfigException($"Could not find config for: {d.Id}! Range: {d.VersionRange}");
             // Then we want to check to ensure that the config file we have gotten is within our version
@@ -93,13 +93,13 @@ namespace QuestPackageManager
                     throw new ConfigException($"A restored dependency in config for: {depConfig.Config.Info.Id} version: {depConfig.Config.Info.Version} has a null dependency or version property!");
                 // For each of the config's dependencies, collect all of the restored dependencies for it,
                 // if we have no RestoredDependencies that match the ID, VersionRange, and Version already (since those would be the same).
-                CollectDependencies(thisId, ref myDependencies, innerD);
+                await CollectDependencies(thisId, myDependencies, innerD).ConfigureAwait(false);
                 // We can actually take it easy here, we only need to COLLECT our dependencies, we don't need to COLLAPSE them.
             }
             // When we are done, myDependencies should contain a mapping of ALL of our dependencies (recursively) mapped to their SharedConfigs.
         }
 
-        public Dictionary<RestoredDependencyPair, SharedConfig> CollectDependencies()
+        public async Task<Dictionary<RestoredDependencyPair, SharedConfig>> CollectDependencies()
         {
             var config = configProvider.GetConfig();
             if (config is null)
@@ -108,7 +108,7 @@ namespace QuestPackageManager
                 throw new ConfigException(Resources.ConfigInfoIsNull);
             var myDependencies = new Dictionary<RestoredDependencyPair, SharedConfig>();
             foreach (var d in config.Dependencies)
-                CollectDependencies(config.Info.Id, ref myDependencies, new RestoredDependencyPair { Dependency = d });
+                await CollectDependencies(config.Info.Id, myDependencies, new RestoredDependencyPair { Dependency = d }).ConfigureAwait(false);
             // Call post dependency resolution code
             OnDependenciesCollected?.Invoke(this, myDependencies);
             return myDependencies;
@@ -179,7 +179,7 @@ namespace QuestPackageManager
         /// <summary>
         ///
         /// </summary>
-        public void Restore()
+        public async Task Restore()
         {
             var config = configProvider.GetConfig();
             if (config is null)
@@ -189,7 +189,7 @@ namespace QuestPackageManager
                 throw new ConfigException(Resources.LocalConfigNotCreated);
             if (config.Info is null)
                 throw new ConfigException(Resources.ConfigInfoIsNull);
-            var myDependencies = CollectDependencies();
+            var myDependencies = await CollectDependencies().ConfigureAwait(false);
 
             // Collapse our dependencies into unique IDs
             // This can throw, based off of invalid matches
@@ -218,11 +218,11 @@ namespace QuestPackageManager
             {
                 // For each of the (non-unique) dependencies, resolve each one.
                 // However, we only want to HEADER resolve the unique dependencies
-                dependencyResolver.ResolveDependency(config, kvp.Key);
+                await dependencyResolver.ResolveDependency(config, kvp.Key).ConfigureAwait(false);
                 sharedConfig.RestoredDependencies.Add(kvp.Key);
             }
             foreach (var val in collapsed)
-                dependencyResolver.ResolveUniqueDependency(config, val);
+                await dependencyResolver.ResolveUniqueDependency(config, val).ConfigureAwait(false);
             // Perform additional modification here
             OnRestore?.Invoke(this, myDependencies, collapsed);
             configProvider.Commit();

@@ -10,10 +10,13 @@ namespace QPM.Commands
     [Command("publish", Description = "Publish package")]
     internal class PublishCommand
     {
-        private void OnExecute()
+        private async Task OnExecute()
         {
-            Program.PublishHandler.Publish();
-            Utils.WriteSuccess();
+            var res = await Program.PublishHandler.Publish().ConfigureAwait(false);
+            if (res.IsSuccessStatusCode)
+                Utils.WriteSuccess();
+            else
+                Utils.WriteFail($"Failed! Status code: {res.StatusCode} ({(int)res.StatusCode})");
         }
     }
 }

@@ -11,7 +11,7 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
     public class CollapseDependenciesTests
     {
         [Fact]
-        public void SimpleCollapse()
+        public async Task SimpleCollapse()
         {
             // Collect a dependency, collapse it, and nothing should change
             var config = new Config() { Info = new PackageInfo("MyMod", "asdf", new SemVer.Version("0.1.0")) };
@@ -24,7 +24,7 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
 
             var restorer = new RestoreHandler(configProvider.Object, uriHandler.Object);
             // Should not throw
-            var deps = restorer.CollectDependencies();
+            var deps = await restorer.CollectDependencies();
             var result = RestoreHandler.CollapseDependencies(deps);
             Assert.All(deps, kvp =>
             {
@@ -34,7 +34,7 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
         }
 
         [Fact]
-        public void NestedCollapse()
+        public async Task NestedCollapse()
         {
             // Collect nested dependencies, collapse them, nothing should change
             var config = new Config() { Info = new PackageInfo("MyMod", "asdf", new SemVer.Version("0.1.0")) };
@@ -50,7 +50,7 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
 
             var restorer = new RestoreHandler(configProvider.Object, uriHandler.Object);
             // Should not throw
-            var deps = restorer.CollectDependencies();
+            var deps = await restorer.CollectDependencies();
             var result = RestoreHandler.CollapseDependencies(deps);
             Assert.All(deps, kvp =>
             {
@@ -60,7 +60,7 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
         }
 
         [Fact]
-        public void CollapseMatching()
+        public async Task CollapseMatching()
         {
             // Collect nested dependencies that are collapsible, should result in 1
             var config = new Config() { Info = new PackageInfo("MyMod", "asdf", new SemVer.Version("0.1.0")) };
@@ -82,7 +82,7 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
 
             var innerRestorer = new RestoreHandler(Utils.GetConfigProvider(depConfig.Config).Object, uriHandler.Object);
             // Should not throw
-            var innerDeps = innerRestorer.CollectDependencies();
+            var innerDeps = await innerRestorer.CollectDependencies();
             Assert.Collection(innerDeps,
                 kvp =>
                 {
@@ -96,7 +96,7 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
 
             var restorer = new RestoreHandler(configProvider.Object, uriHandler.Object);
             // Should not throw
-            var deps = restorer.CollectDependencies();
+            var deps = await restorer.CollectDependencies();
             // We should now HAVE THREE dependencies!
             // The two dependencies for "needed" (because they are unique versions) and the dependency for "id"
             Assert.Collection(deps,
@@ -148,7 +148,7 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
         }
 
         [Fact]
-        public void CollapseInvalid()
+        public async Task CollapseInvalid()
         {
             // Collect nested dependencies that are not collapsible, should cause a DependencyException
             // Collect nested dependencies that are collapsible, should result in 1
@@ -171,7 +171,7 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
 
             var innerRestorer = new RestoreHandler(Utils.GetConfigProvider(depConfig.Config).Object, uriHandler.Object);
             // Should not throw
-            var innerDeps = innerRestorer.CollectDependencies();
+            var innerDeps = await innerRestorer.CollectDependencies();
             Assert.Collection(innerDeps,
                 kvp =>
                 {
@@ -185,7 +185,7 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
 
             var restorer = new RestoreHandler(configProvider.Object, uriHandler.Object);
             // Should not throw
-            var deps = restorer.CollectDependencies();
+            var deps = await restorer.CollectDependencies();
             // We should now HAVE THREE dependencies!
             // The two dependencies for "needed" (because they are unique versions) and the dependency for "id"
             Assert.Collection(deps,

@@ -10,11 +10,11 @@ namespace QuestPackageManager
 {
     public interface IDependencyResolver
     {
-        public SharedConfig? GetSharedConfig(RestoredDependencyPair pairWithVersion);
+        public Task<SharedConfig?> GetSharedConfig(RestoredDependencyPair pairWithVersion);
 
-        public void ResolveDependency(in Config myConfig, in RestoredDependencyPair dependency);
+        public Task ResolveDependency(Config myConfig, RestoredDependencyPair dependency);
 
-        public void ResolveUniqueDependency(in Config myConfig, KeyValuePair<RestoredDependencyPair, SharedConfig> resolved);
+        public Task ResolveUniqueDependency(Config myConfig, KeyValuePair<RestoredDependencyPair, SharedConfig> resolved);
 
         public void RemoveDependency(in Config myConfig, in Dependency dependency);
     }

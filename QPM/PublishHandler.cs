@@ -4,6 +4,7 @@ using QuestPackageManager.Data;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -20,7 +21,7 @@ namespace QPM
             this.api = api;
         }
 
-        public void Publish()
+        public async Task<HttpResponseMessage> Publish()
         {
             // Ensure the config is valid
             var sharedConfig = configProvider.GetSharedConfig();
@@ -44,7 +45,7 @@ namespace QPM
                 throw new DependencyException($"Config {SupportedPropertiesCommand.ReleaseSoLink} does not exist! Try using {SupportedPropertiesCommand.HeadersOnly} if you do not need a .so file. See 'properties-list' for more info");
 
             // Push it to the server
-            api.Push(sharedConfig);
+            return await api.Push(sharedConfig).ConfigureAwait(false);
         }
     }
 }

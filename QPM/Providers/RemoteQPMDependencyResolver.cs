@@ -11,20 +11,27 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
+using System.Reflection;
 using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace QPM
 {
     internal class RemoteQPMDependencyResolver : IDependencyResolver
     {
-        private readonly WebClient client;
+        private readonly HttpClient client;
         private readonly QPMApi api;
         private readonly Dictionary<RestoredDependencyPair, SharedConfig> cached = new();
         private readonly AndroidMkProvider androidMkProvider;
 
         public RemoteQPMDependencyResolver(QPMApi api, AndroidMkProvider mkProvider)
         {
-            client = new WebClient();
+            client = new HttpClient
+            {
+                Timeout = TimeSpan.FromSeconds(Program.Config.DependencyTimeoutSeconds)
+            };
+            client.DefaultRequestHeaders.Add("User-Agent", "QPM_" + Assembly.GetCallingAssembly().GetName().Version?.ToString());
             this.api = api;
             androidMkProvider = mkProvider;
         }
@@ -127,7 +134,7 @@ namespace QPM
 
         private void P_OutputDataReceived(object sender, DataReceivedEventArgs e) => Console.WriteLine(e.Data);
 
-        public SharedConfig GetSharedConfig(RestoredDependencyPair pair)
+        public async Task<SharedConfig?> GetSharedConfig(RestoredDependencyPair pair)
         {
             var dependency = pair.Dependency!;
             if (cached.TryGetValue(pair, out var conf))
@@ -137,7 +144,7 @@ namespace QPM
                 // Try to download dependency
                 try
                 {
-                    conf = api.GetLatestConfig(dependency, pair.Version).Result;
+                    conf = await api.GetLatestConfig(dependency, pair.Version).ConfigureAwait(false);
                     Console.WriteLine($"Got config for: {dependency.Id} version: {pair.Version}");
                 }
                 catch (WebException)
@@ -149,7 +156,7 @@ namespace QPM
             {
                 try
                 {
-                    var path = localE.GetString();
+                    var path = localE.GetString()!;
                     var cfgProv = new LocalConfigProvider(path, Program.PackageFileName, Program.LocalFileName);
                     conf = cfgProv.GetSharedConfig();
                 }
@@ -158,7 +165,8 @@ namespace QPM
                     return null;
                 }
             }
-            cached.Add(pair, conf);
+            if (conf is not null)
+                cached.Add(pair, conf);
             return conf;
         }
 
@@ -197,7 +205,8 @@ namespace QPM
                         Utils.DeleteDirectory(dest);
                     }
 
-                    Console.WriteLine($"Creating symlink for additional data {location} to {dest}");
+                    if (Program.Config.UseSymlinks)
+                        Console.WriteLine($"Creating symlink for additional data {location} to {dest}");
                     Utils.SymLinkOrCopyDirectory(location, dest);
                 }
             }
@@ -233,12 +242,16 @@ namespace QPM
             }
         }
 
-        private void DownloadDependency(string downloadFolder, Uri url)
+        private async Task DownloadDependency(string downloadFolder, Uri url)
         {
             // We would like to throw here on failure
             var downloadLoc = downloadFolder + ".zip";
             Console.WriteLine($"Trying to download from: {url}");
-            client.DownloadFile(url, downloadLoc);
+            var stream = await client.GetStreamAsync(url).ConfigureAwait(false);
+            if (File.Exists(downloadLoc))
+                File.Delete(downloadLoc);
+            using (var fs = File.OpenWrite(downloadLoc))
+                await stream.CopyToAsync(fs).ConfigureAwait(false);
             // We would like to throw here on failure
             if (Directory.Exists(downloadFolder))
                 Utils.DeleteDirectory(downloadFolder);
@@ -252,11 +265,11 @@ namespace QPM
         }
 
         // TODO: Add SharedConfig parameter
-        public void ResolveDependency(in Config myConfig, in RestoredDependencyPair pair)
+        public async Task ResolveDependency(Config myConfig, RestoredDependencyPair pair)
         {
             if (pair.Dependency is null)
                 throw new ArgumentException("Dependency pair cannot have a null Dependency!", nameof(pair));
-            var sharedConfig = GetSharedConfig(pair);
+            var sharedConfig = await GetSharedConfig(pair).ConfigureAwait(false);
             if (sharedConfig is null)
                 throw new DependencyException($"Could not get shared config for dependency pair: {pair.Dependency.Id} version range: {pair.Dependency.VersionRange} specific version: {pair.Version}");
             if (sharedConfig.Config is null || sharedConfig.Config.Info is null)
@@ -342,7 +355,6 @@ namespace QPM
                 ? throw new DependencyException($"Dependency: {sharedConfig.Config.Info.Id} has no 'soLink' property! Cannot download so to link!")
                 : soLinkE.GetString()!;
 
-            WebClient client = new();
             // soName is dictated by the overriden name, if it exists. Otherwise, it is this.
             var soName = sharedConfig.Config.Info.GetSoName(out var overrodeName);
 
@@ -371,7 +383,11 @@ namespace QPM
                         if (!File.Exists(tempLoc))
                         {
                             Console.WriteLine($"Downloading so from: {soLink} to: {tempLoc}");
-                            client.DownloadFile(soLink, tempLoc);
+                            var stream = await client.GetStreamAsync(soLink).ConfigureAwait(false);
+                            if (File.Exists(tempLoc))
+                                File.Delete(tempLoc);
+                            using var fs = File.OpenWrite(tempLoc);
+                            await stream.CopyToAsync(fs).ConfigureAwait(false);
                         }
 
                         // Make a symlink from the cache, or fallback to copy
@@ -396,7 +412,7 @@ namespace QPM
                         ? "include $(PREBUILT_STATIC_LIBRARY)"
                         : "include $(PREBUILT_SHARED_LIBRARY)";
 
-                    var module = new Module
+                    var module = new Data.Module
                     {
                         PrefixLines = new List<string>
                     {
@@ -522,7 +538,7 @@ namespace QPM
             }
         }
 
-        public void ResolveUniqueDependency(in Config myConfig, KeyValuePair<RestoredDependencyPair, SharedConfig> resolved)
+        public async Task ResolveUniqueDependency(Config myConfig, KeyValuePair<RestoredDependencyPair, SharedConfig> resolved)
         {
             // When we resolve a unique dependency, we copy over the headers.
             // Otherwise, we simply copy over the .so and call it a day (unless it is header-only)
@@ -547,7 +563,7 @@ namespace QPM
                 {
                     // Attempt to download the file as a zip and extract it
                     if (!DependencyCached(downloadFolder, conf))
-                        DownloadDependency(downloadFolder, url);
+                        await DownloadDependency(downloadFolder, url).ConfigureAwait(false);
                 }
                 var root = Utils.GetSubdir(downloadFolder);
                 var externalCfgProvider = new LocalConfigProvider(root, Program.PackageFileName, Program.LocalFileName);
@@ -560,7 +576,7 @@ namespace QPM
             }
             else
             {
-                var localPath = localE.GetString();
+                var localPath = localE.GetString()!;
                 // Copy the localPath folder to myConfig
                 CopyTo(localPath, myConfig, conf, data);
             }

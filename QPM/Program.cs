@@ -1,4 +1,5 @@
 ﻿using McMaster.Extensions.CommandLineUtils;
+using Microsoft.Extensions.Configuration;
 using QPM.Commands;
 using QPM.Data;
 using QPM.Providers;
@@ -9,7 +10,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Runtime.CompilerServices;
 using System.Runtime.Versioning;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace QPM
@@ -34,6 +37,7 @@ namespace QPM
         internal static PackageHandler PackageHandler { get; private set; }
         internal static RestoreHandler RestoreHandler { get; private set; }
         internal static PublishHandler PublishHandler { get; private set; }
+        internal static QPMConfig Config { get; private set; } = new QPMConfig();
 
         internal static IConfigProvider configProvider;
         private static IDependencyResolver resolver;
@@ -42,11 +46,28 @@ namespace QPM
         private static AndroidMkProvider androidMkProvider;
         private static QPMApi api;
 
+        private static void LoadConfig()
+        {
+            const string configPath = "appsettings.json";
+            if (!File.Exists(configPath))
+            {
+                // Write default settings always
+                File.WriteAllText(configPath, JsonSerializer.Serialize(Config, new JsonSerializerOptions { WriteIndented = true }));
+            }
+            else
+            {
+                var tmp = JsonSerializer.Deserialize<QPMConfig>(File.ReadAllText(configPath));
+                if (tmp is not null)
+                    Config = tmp;
+            }
+        }
+
         public static int Main(string[] args)
         {
+            LoadConfig();
             // Create config provider
             configProvider = new LocalConfigProvider(Environment.CurrentDirectory, PackageFileName, LocalFileName);
-            api = new QPMApi(configProvider);
+            api = new QPMApi(configProvider, Config.DependencyTimeoutSeconds);
             androidMkProvider = new AndroidMkProvider(Path.Combine(Environment.CurrentDirectory, "Android.mk"));
             resolver = new RemoteQPMDependencyResolver(api, androidMkProvider);
             propertiesProvider = new CppPropertiesProvider(Path.Combine(Environment.CurrentDirectory, ".vscode", "c_cpp_properties.json"));
@@ -64,6 +85,8 @@ namespace QPM
             DependencyHandler.OnDependencyRemoved += DependencyHandler_OnDependencyRemoved;
             // TODO: AKLJSHFJKGHDKJ
             RestoreHandler.OnRestore += (resolver as RemoteQPMDependencyResolver)!.OnRestore;
+
+            // Create configuration/load it if it exists
 
             try
             {
@@ -146,7 +169,7 @@ namespace QPM
                 {
                     module.AddDefine("VERSION", version.ToString());
                     if (overrodeName)
-                        module.Id = overridenName.GetString().ReplaceFirst("lib", "").ReplaceLast(".so", "").ReplaceLast(".a","");
+                        module.Id = overridenName.GetString().ReplaceFirst("lib", "").ReplaceLast(".so", "").ReplaceLast(".a", "");
                     else
                         module.EnsureIdIs(conf.Info.Id, version);
                     androidMkProvider.SerializeFile(mk);
@@ -203,7 +226,7 @@ namespace QPM
                     {
                         if (cfg.Info.AdditionalData.TryGetValue(SupportedPropertiesCommand.OverrideSoName, out var overridenName))
                         {
-                            module.Id = overridenName.GetString().ReplaceFirst("lib", "").ReplaceLast(".so", "").ReplaceLast(".a","");
+                            module.Id = overridenName.GetString().ReplaceFirst("lib", "").ReplaceLast(".so", "").ReplaceLast(".a", "");
                         }
                         else
                             module.EnsureIdIs(info.Id, info.Version);
@@ -245,7 +268,7 @@ namespace QPM
                 {
                     module.AddDefine("ID", id);
                     if (conf.Info.AdditionalData.TryGetValue(SupportedPropertiesCommand.OverrideSoName, out var overridenName))
-                        module.Id = overridenName.GetString().Replace("lib", "").Replace(".so", "").ReplaceLast(".a","");
+                        module.Id = overridenName.GetString().Replace("lib", "").Replace(".so", "").ReplaceLast(".a", "");
                     else
                         module.EnsureIdIs(id, conf.Info.Version);
                     androidMkProvider.SerializeFile(mk);

@@ -12,7 +12,7 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
     public class CollectDependenciesTests
     {
         [Fact]
-        public void Simple()
+        public async Task Simple()
         {
             var config = new Config() { Info = new PackageInfo("MyMod", "asdf", new SemVer.Version("0.1.0")) };
             var dep = new Dependency("id", new SemVer.Range("^0.1.0"));
@@ -24,7 +24,7 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
 
             var restorer = new RestoreHandler(configProvider.Object, uriHandler.Object);
             // Should not throw
-            var deps = restorer.CollectDependencies();
+            var deps = await restorer.CollectDependencies();
             // Ensure we still only have one dependency and nothing has changed
             Assert.Collection(deps,
                 kvp =>
@@ -35,7 +35,7 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
         }
 
         [Fact]
-        public void NestedNew()
+        public async Task NestedNew()
         {
             var config = new Config() { Info = new PackageInfo("MyMod", "asdf", new SemVer.Version("0.1.0")) };
             var dep = new Dependency("id", new SemVer.Range("^0.1.0"));
@@ -50,7 +50,7 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
 
             var innerRestorer = new RestoreHandler(Utils.GetConfigProvider(depConfig.Config).Object, uriHandler.Object);
             // Should not throw
-            var innerDeps = innerRestorer.CollectDependencies();
+            var innerDeps = await innerRestorer.CollectDependencies();
             Assert.Collection(innerDeps,
                 kvp =>
                 {
@@ -64,7 +64,7 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
 
             var restorer = new RestoreHandler(configProvider.Object, uriHandler.Object);
             // Should not throw
-            var deps = restorer.CollectDependencies();
+            var deps = await restorer.CollectDependencies();
             // We should now have TWO dependencies, one for id and one for id2
             // Order of these dependencies should not matter. They just both need to be in there.
             Assert.Collection(deps,
@@ -83,7 +83,7 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
         }
 
         [Fact]
-        public void NestedExistingUnique()
+        public async Task NestedExistingUnique()
         {
             var config = new Config() { Info = new PackageInfo("MyMod", "asdf", new SemVer.Version("0.1.0")) };
             var dep = new Dependency("id", new SemVer.Range("^0.1.0"));
@@ -106,7 +106,7 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
 
             var innerRestorer = new RestoreHandler(Utils.GetConfigProvider(depConfig.Config).Object, uriHandler.Object);
             // Should not throw
-            var innerDeps = innerRestorer.CollectDependencies();
+            var innerDeps = await innerRestorer.CollectDependencies();
             Assert.Collection(innerDeps,
                 kvp =>
                 {
@@ -120,7 +120,7 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
 
             var restorer = new RestoreHandler(configProvider.Object, uriHandler.Object);
             // Should not throw
-            var deps = restorer.CollectDependencies();
+            var deps = await restorer.CollectDependencies();
             // We should now HAVE THREE dependencies!
             // The two dependencies for "needed" (because they are unique versions) and the dependency for "id"
             Assert.Collection(deps,
@@ -151,7 +151,7 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
         }
 
         [Fact]
-        public void NestedExistingDuplicate()
+        public async Task NestedExistingDuplicate()
         {
             var config = new Config() { Info = new PackageInfo("MyMod", "asdf", new SemVer.Version("0.1.0")) };
             var dep = new Dependency("id", new SemVer.Range("^0.1.0"));
@@ -173,7 +173,7 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
 
             var innerRestorer = new RestoreHandler(Utils.GetConfigProvider(depConfig.Config).Object, uriHandler.Object);
             // Should not throw
-            var innerDeps = innerRestorer.CollectDependencies();
+            var innerDeps = await innerRestorer.CollectDependencies();
             Assert.Collection(innerDeps,
                 kvp =>
                 {
@@ -187,7 +187,7 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
 
             var restorer = new RestoreHandler(configProvider.Object, uriHandler.Object);
             // Should not throw
-            var deps = restorer.CollectDependencies();
+            var deps = await restorer.CollectDependencies();
             // We should now ONLY HAVE TWO dependencies!
             // The two dependencies for "needed" should be auto-collapsed into one, because the Versions match
             Assert.Collection(deps,
@@ -210,7 +210,7 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
         }
 
         [Fact]
-        public void Recursive()
+        public async Task Recursive()
         {
             var config = new Config() { Info = new PackageInfo("MyMod", "id", new SemVer.Version("0.1.0")) };
             var dep = new Dependency("id", new SemVer.Range("^0.1.0"));
@@ -222,13 +222,13 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
 
             var restorer = new RestoreHandler(configProvider.Object, uriHandler.Object);
             // Should throw a recursive exception (id cannot include id)
-            Assert.Throws<DependencyException>(() => restorer.CollectDependencies());
+            await Assert.ThrowsAsync<DependencyException>(() => restorer.CollectDependencies());
             // Should never have made any GetConfig calls
             uriHandler.Verify(mocks => mocks.GetSharedConfig(It.IsAny<RestoredDependencyPair>()), Times.Never);
         }
 
         [Fact]
-        public void NestedRecursive()
+        public async Task NestedRecursive()
         {
             var config = new Config() { Info = new PackageInfo("MyMod", "id", new SemVer.Version("0.1.0")) };
             var dep = new Dependency("asdf", new SemVer.Range("^0.1.0"));
@@ -245,7 +245,7 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
 
             var innerRestorer = new RestoreHandler(Utils.GetConfigProvider(depConfig.Config).Object, uriHandler.Object);
             // Should not throw
-            var innerDeps = innerRestorer.CollectDependencies();
+            var innerDeps = await innerRestorer.CollectDependencies();
             Assert.Collection(innerDeps,
                 kvp =>
                 {
@@ -260,7 +260,7 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
 
             var restorer = new RestoreHandler(configProvider.Object, uriHandler.Object);
             // Should throw a recursive exception (id cannot include id)
-            Assert.Throws<DependencyException>(() => restorer.CollectDependencies());
+            await Assert.ThrowsAsync<DependencyException>(() => restorer.CollectDependencies());
             // Should have tried to get asdf's config
             uriHandler.Verify(mocks => mocks.GetSharedConfig(It.Is<RestoredDependencyPair>(p => p.Dependency == dep)), Times.Once);
             // The inner dependency should have been attempted to have been gotten exactly once, from the innerRestorer collection
@@ -269,7 +269,7 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
         }
 
         [Fact]
-        public void DoNotMatchConfig()
+        public async Task DoNotMatchConfig()
         {
             // Collect nested dependencies that are not collapsible, should cause a DependencyException
             // Collect nested dependencies that are collapsible, should result in 1
@@ -291,14 +291,14 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
 
             var innerRestorer = new RestoreHandler(Utils.GetConfigProvider(depConfig.Config).Object, uriHandler.Object);
             // Should throw
-            Assert.Throws<DependencyException>(() => innerRestorer.CollectDependencies());
+            await Assert.ThrowsAsync<DependencyException>(() => innerRestorer.CollectDependencies());
             // Assume it DID NOT restore
 
             var restorer = new RestoreHandler(configProvider.Object, uriHandler.Object);
             // This should NOT throw, since the version we test here actually exists and is satisfiable.
             // and our dependency config DOES NOT contain a restored dependency that causes any problems.
             // TODO: We could add a test here to test for when one matches but they other doesn't too.
-            var deps = restorer.CollectDependencies();
+            var deps = await restorer.CollectDependencies();
             Assert.Collection(deps,
                 kvp =>
                 {

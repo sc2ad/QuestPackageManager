@@ -1,9 +1,9 @@
 {
-  "profiles": {
-    "QPM": {
-      "commandName": "Project",
-      "commandLineArgs": "restore",
-      "workingDirectory": "C:\\Users\\Sc2ad\\Desktop\\Code\\BeatSaberMods\\TypePatching"
-    }
-  }
+	"profiles": {
+		"QPM": {
+			"commandName": "Project",
+			"commandLineArgs": "publish",
+			"workingDirectory": "C:\\Users\\Sc2ad\\Desktop\\Code\\BeatSaberMods\\TypePatching"
+		}
+	}
 }

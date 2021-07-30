@@ -31,13 +31,13 @@ namespace QPM
 
         private readonly HttpClient client;
 
-        public QPMApi(IConfigProvider configProvider)
+        public QPMApi(IConfigProvider configProvider, double secondsTimeout)
         {
             this.configProvider = configProvider;
             client = new HttpClient
             {
                 BaseAddress = new Uri(ApiUrl),
-                Timeout = TimeSpan.FromSeconds(300)
+                Timeout = TimeSpan.FromSeconds(secondsTimeout)
             };
             client.DefaultRequestHeaders.Add("User-Agent", "QPM_" + Assembly.GetCallingAssembly().GetName().Version?.ToString());
         }
@@ -105,7 +105,7 @@ namespace QPM
             return configProvider.From(s);
         }
 
-        public async Task Push(SharedConfig config)
+        public async Task<HttpResponseMessage> Push(SharedConfig config)
         {
             if (config is null)
                 throw new ArgumentNullException(nameof(config));
@@ -117,7 +117,7 @@ namespace QPM
             };
             request.Headers.Add("Authorization", AuthorizationHeader);
 
-            await client.SendAsync(request).ConfigureAwait(false);
+            return await client.SendAsync(request).ConfigureAwait(false);
         }
     }
 }
