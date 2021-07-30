@@ -140,8 +140,6 @@ namespace QPM.Commands
                 }
             }
 
-            // TODO: Add qpm package edit extra (add, remove)
-
             private void OnExecute(CommandLineApplication app) => app.ShowHelp();
         }
 

@@ -46,9 +46,10 @@ namespace QPM
         private static AndroidMkProvider androidMkProvider;
         private static QPMApi api;
 
+        private const string configPath = "appsettings.json";
+
         private static void LoadConfig()
         {
-            const string configPath = "appsettings.json";
             if (!File.Exists(configPath))
             {
                 // Write default settings always
@@ -61,6 +62,9 @@ namespace QPM
                     Config = tmp;
             }
         }
+
+        internal static async Task SaveConfig() =>
+            await File.WriteAllTextAsync(configPath, JsonSerializer.Serialize(Config, new JsonSerializerOptions { WriteIndented = true })).ConfigureAwait(false);
 
         public static int Main(string[] args)
         {
