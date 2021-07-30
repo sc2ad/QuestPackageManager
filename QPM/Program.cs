@@ -50,8 +50,24 @@ namespace QPM
 
         private static readonly string configPath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!, "appsettings.json");
 
+        // TODO: Local config should be DIFFERENT than global config.
+        // Both should also be accessible, as in, they should not share the same instance.
+        private const string qpmLocalConfig = "qpm.config.json";
+
+        internal static bool isLocal = false;
+
         private static void LoadConfig()
         {
+            if (File.Exists(qpmLocalConfig))
+            {
+                // Load local config if it exists
+                Console.WriteLine($"Found local config at: {qpmLocalConfig}");
+                var tmp = JsonSerializer.Deserialize<QPMConfig>(File.ReadAllText(qpmLocalConfig));
+                if (tmp is not null)
+                    Config = tmp;
+                isLocal = true;
+                return;
+            }
             if (!File.Exists(configPath))
             {
                 Console.WriteLine($"Creating config at: {configPath}");
@@ -67,8 +83,17 @@ namespace QPM
             }
         }
 
-        internal static async Task SaveConfig() =>
-            await File.WriteAllTextAsync(configPath, JsonSerializer.Serialize(Config, new JsonSerializerOptions { WriteIndented = true })).ConfigureAwait(false);
+        internal static async Task SaveConfig()
+        {
+            if (!isLocal)
+            {
+                await File.WriteAllTextAsync(configPath, JsonSerializer.Serialize(Config, new JsonSerializerOptions { WriteIndented = true })).ConfigureAwait(false);
+            }
+            else
+            {
+                await File.WriteAllTextAsync(qpmLocalConfig, JsonSerializer.Serialize(Config, new JsonSerializerOptions { WriteIndented = true })).ConfigureAwait(false);
+            }
+        }
 
         public static int Main(string[] args)
         {
