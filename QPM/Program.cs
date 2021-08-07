@@ -58,28 +58,36 @@ namespace QPM
 
         private static void LoadConfig()
         {
-            if (File.Exists(qpmLocalConfig))
+            try
             {
-                // Load local config if it exists
-                Console.WriteLine($"Found local config at: {qpmLocalConfig}");
-                var tmp = JsonSerializer.Deserialize<QPMConfig>(File.ReadAllText(qpmLocalConfig));
-                if (tmp is not null)
-                    Config = tmp;
-                isLocal = true;
-                return;
+                if (File.Exists(qpmLocalConfig))
+                {
+                    // Load local config if it exists
+                    Console.WriteLine($"Found local config at: {qpmLocalConfig}");
+                    var tmp = JsonSerializer.Deserialize<QPMConfig>(File.ReadAllText(qpmLocalConfig));
+                    if (tmp is not null)
+                        Config = tmp;
+                    isLocal = true;
+                    return;
+                }
+                if (!File.Exists(configPath))
+                {
+                    Console.WriteLine($"Creating config at: {configPath}");
+                    // Write default settings always
+                    File.WriteAllText(configPath, JsonSerializer.Serialize(Config, new JsonSerializerOptions { WriteIndented = true }));
+                }
+                else
+                {
+                    Console.WriteLine($"Found config at: {configPath}");
+                    var tmp = JsonSerializer.Deserialize<QPMConfig>(File.ReadAllText(configPath));
+                    if (tmp is not null)
+                        Config = tmp;
+                }
             }
-            if (!File.Exists(configPath))
+            catch
             {
-                Console.WriteLine($"Creating config at: {configPath}");
-                // Write default settings always
-                File.WriteAllText(configPath, JsonSerializer.Serialize(Config, new JsonSerializerOptions { WriteIndented = true }));
-            }
-            else
-            {
-                Console.WriteLine($"Found config at: {configPath}");
-                var tmp = JsonSerializer.Deserialize<QPMConfig>(File.ReadAllText(configPath));
-                if (tmp is not null)
-                    Config = tmp;
+                // If we can't access the config for any reason, whatever dude.
+                Console.WriteLine($"Configuration could not be loaded!");
             }
         }
 
