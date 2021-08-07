@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "QPM"
-#define MyAppVersion "0.3.0.0"
+#define MyAppVersion "0.3.1.0"
 #define MyAppPublisher "Sc2ad"
 #define MyAppURL "https://github.com/sc2ad/QuestPackageManager"
 #define MyAppExeName "QPM.exe"

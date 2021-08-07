@@ -58,18 +58,18 @@ namespace QPM
                 info.Attributes &= ~FileAttributes.ReadOnly;
         }
 
-        public static byte[] FolderHash(string path)
+        public static byte[]? FolderHash(string path)
         {
             var files = Directory.GetFiles(path, "*.*", SearchOption.AllDirectories).OrderBy(p => p).ToList();
 
-            MD5 md5 = MD5.Create();
+            using var md5 = MD5.Create();
 
             for (int i = 0; i < files.Count; i++)
             {
                 string file = files[i];
 
                 // hash path
-                string relativePath = file.Substring(path.Length + 1);
+                string relativePath = file[(path.Length + 1)..];
                 byte[] pathBytes = Encoding.UTF8.GetBytes(relativePath.ToLower());
                 md5.TransformBlock(pathBytes, 0, pathBytes.Length, pathBytes, 0);
 
@@ -81,7 +81,7 @@ namespace QPM
                     md5.TransformBlock(contentBytes, 0, contentBytes.Length, contentBytes, 0);
             }
 
-            return md5.Hash!;
+            return md5.Hash;
         }
 
         public static byte[] FileHash(string path)
