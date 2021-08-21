@@ -87,10 +87,22 @@ namespace QuestPackageManager
             }
             // Otherwise, we iterate over all of the config's RESTORED dependencies
             // That is, all of the dependencies that we used to actually build this
-            foreach (var innerD in depConfig.RestoredDependencies)
+            foreach (var innerD in new List<RestoredDependencyPair>(depConfig.RestoredDependencies))
             {
                 if (innerD.Dependency is null || innerD.Version is null)
                     throw new ConfigException($"A restored dependency in config for: {depConfig.Config.Info.Id} version: {depConfig.Config.Info.Version} has a null dependency or version property!");
+
+                // Skip private dependencies from resolving
+                if (innerD.Dependency.AdditionalData.TryGetValue("private", out var isPrivate) &&
+                    isPrivate.GetBoolean())
+                {
+                    // Console.WriteLine($"Skipping {innerD.Dependency.Id}");
+                    // TODO: Does sc2ad approve of this?
+                    depConfig.RestoredDependencies.Remove(innerD);
+                    continue;
+                }
+
+
                 // For each of the config's dependencies, collect all of the restored dependencies for it,
                 // if we have no RestoredDependencies that match the ID, VersionRange, and Version already (since those would be the same).
                 await CollectDependencies(thisId, myDependencies, innerD).ConfigureAwait(false);
