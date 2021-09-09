@@ -93,6 +93,12 @@ namespace QPM
 
         public static void DeleteDirectory(string path)
         {
+            if (new DirectoryInfo(path).Attributes.HasFlag(FileAttributes.ReparsePoint))
+            {
+                // Does not recurse through reparse point
+                Directory.Delete(path, true);
+                return;
+            }
             foreach (string directory in Directory.GetDirectories(path))
                 DeleteDirectory(directory);
             foreach (string file in Directory.GetFiles(path))
