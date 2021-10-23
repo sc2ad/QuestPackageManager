@@ -55,7 +55,7 @@ This is primarily a command used to ensure the package's collected dependencies 
 qpm collapse
 ```
 
-Should print out a listing of dependencies similar to [Collapse Dependencies](#collapse-dependencies), but with identical IDs combined.
+Should print out a listing of dependencies similar to [Collect Dependencies](#collect-dependencies), but with identical IDs combined.
 
 ### Restoring Dependencies
 

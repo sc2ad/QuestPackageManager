@@ -218,7 +218,8 @@ namespace QPM
             var dstExpanded = Path.GetFullPath(dst);
             var root = Utils.GetSubdir(downloadFolder);
             var src = Path.Combine(root, sharedConfig.Config.SharedDir);
-            if (!Directory.Exists(dst) || !Utils.FolderHash(src).SequenceEqual(Utils.FolderHash(dst)))
+            // If we can't get the hash, we need to copy.
+            if (!Directory.Exists(dst) || (!Utils.FolderHash(src)?.SequenceEqual(Utils.FolderHash(dst) ?? Array.Empty<byte>()) ?? true))
             {
                 Console.WriteLine($"Copying: {src} to: {dst}");
 
