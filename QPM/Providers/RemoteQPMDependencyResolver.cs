@@ -106,9 +106,22 @@ namespace QPM
             else
                 branchName = branchNameE.GetString();
 
+            bool hasSubFolder = data.TryGetValue(SupportedPropertiesCommand.Subfolder, out var subFolder);
+
             // git clone (url + .git), checout correct branch, and initialize submodules
             if (!DependencyCached(downloadFolder, sharedConfig))
             {
+                string origDownloadFolder = downloadFolder;
+                if (hasSubFolder)
+                {
+                    // We have a specified subfolder in our repo. Lets make sure we clone our repo and ONLY use that.
+                    downloadFolder = Path.Combine(downloadFolder, "tmp");
+                    if (Directory.Exists(downloadFolder))
+                    {
+                        Utils.DeleteDirectory(downloadFolder);
+                    }
+                    Utils.CreateDirectory(downloadFolder);
+                }
                 Console.WriteLine($"Trying to clone from: {url}.git to: {downloadFolder}");
                 // This may not always be the case
                 try
@@ -127,6 +140,12 @@ namespace QPM
                 {
                     Console.WriteLine("Attempt to clone using git failed!");
                     Repository.Clone(url + ".git", downloadFolder, new CloneOptions { BranchName = branchName, RecurseSubmodules = true });
+                }
+                if (hasSubFolder)
+                {
+                    // If we have a subfolder and we have cloned, we need to grab our subfolder ONLY and bring that to our top level, then delete tmp.
+                    Utils.CopyDirectory(Path.Combine(downloadFolder, subFolder.GetString()!), origDownloadFolder);
+                    Utils.DeleteDirectory(downloadFolder);
                 }
                 Utils.DirectoryPermissions(downloadFolder);
             }

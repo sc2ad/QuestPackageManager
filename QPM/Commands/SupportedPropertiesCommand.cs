@@ -29,7 +29,6 @@ namespace QPM.Commands
         [Property("Specify that this package is headers only and does not contain a .so or .a file", "package", Type = "bool")]
         public const string HeadersOnly = "headersOnly";
 
-
         [Property("Specify that this package is static linking", "package", Type = "bool")]
         public const string StaticLinking = "staticLinking";
 
@@ -59,6 +58,9 @@ namespace QPM.Commands
 
         [Property("Name of the style", "style")]
         public const string Style_Name = "name";
+
+        [Property("Subfolder for this particular package in the provided repository, relative to root of the repo.", "package")]
+        public const string Subfolder = "subfolder";
 
         private const string Header = "Supported Additional Properties:";
 
