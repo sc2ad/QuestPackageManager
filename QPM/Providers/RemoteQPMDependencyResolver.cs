@@ -135,12 +135,23 @@ namespace QPM
                     var p = Process.Start(proc)!;
                     p.OutputDataReceived += P_OutputDataReceived;
                     p.WaitForExit();
+                    if (p.ExitCode != 0)
+                    {
+                        Console.WriteLine("Attempt to clone using git failed!");
+                        Repository.Clone(url + ".git", downloadFolder, new CloneOptions { BranchName = branchName, RecurseSubmodules = true });
+                    }
                 }
                 catch (Exception)
                 {
                     Console.WriteLine("Attempt to clone using git failed!");
                     Repository.Clone(url + ".git", downloadFolder, new CloneOptions { BranchName = branchName, RecurseSubmodules = true });
                 }
+                if (!Directory.Exists(downloadFolder))
+                {
+                    // If we STILL don't have a download folder properly populated here, we error very loudly.
+                    throw new InvalidOperationException($"Could not clone! Folder: {downloadFolder} not populated!");
+                }
+
                 if (hasSubFolder)
                 {
                     // If we have a subfolder and we have cloned, we need to grab our subfolder ONLY and bring that to our top level, then delete tmp.
