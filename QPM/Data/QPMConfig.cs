@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Reflection;
+using System.Text.Json.Serialization;
 
 namespace QPM.Data
 {
@@ -10,8 +11,8 @@ namespace QPM.Data
     /// </summary>
     public class QPMConfig
     {
-        public double DependencyTimeoutSeconds { get; internal set; } = 300;
-        public string CachePath { get; internal set; } = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), Assembly.GetExecutingAssembly().GetName().Name + "_Temp");
-        public bool UseSymlinks { get; internal set; } = true;
+        public double DependencyTimeoutSeconds { get; set; } = 300;
+        public string CachePath { get; set; } = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), Assembly.GetExecutingAssembly().GetName().Name + "_Temp");
+        public bool UseSymlinks { get; set; } = true;
     }
 }
