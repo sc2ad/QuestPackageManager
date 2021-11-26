@@ -147,6 +147,68 @@ namespace QuestPackageManager.Tests.RestoreHandlerTests
             );
         }
 
+        private Dependency MakeDep(string id, string range) => new(id, new SemVer.Range(range));
+        private SharedConfig MakeCfg(string id, string ver, string name = "") => new() { Config = new Config() { Info = new PackageInfo(name, id, new SemVer.Version(ver)) } };
+        private RestoredDependencyPair MakeRestoredPair(Dependency dep, string ver) => new() { Dependency = dep, Version = new SemVer.Version(ver) };
+
+        private static Action<KeyValuePair<RestoredDependencyPair, SharedConfig>> Match(Dependency depToMatch, SharedConfig config)
+        {
+            return kvp =>
+            {
+                Assert.Equal(depToMatch.Id, kvp.Key.Dependency.Id);
+                Assert.True(depToMatch.VersionRange.IsSatisfied(kvp.Key.Version));
+                Assert.Equal(config.Config.Info.Version, kvp.Value.Config.Info.Version);
+            };
+        }
+
+        [Fact]
+        public async Task CollapseWithEquality()
+        {
+            // Collect dependencies that have a * and = in them and make sure they collect + collapse to the =
+            var config = new Config { Info = new PackageInfo("MyMod", "asdf", new SemVer.Version("0.1.0")) };
+            // Some deps:
+            // 1 is top level, =
+            // 2 is nested with top level dep, ^
+            // 3 is nested with top level dep, *
+            var d1 = MakeDep("id", "=0.1.1");
+            var d2 = MakeDep("id2", "^0.1.0");
+            var d3 = MakeDep("id3", "^0.1.0");
+            config.Dependencies.AddRange(new [] { d1, d2, d3 });
+            // In order of appearance:
+            var idCfg = MakeCfg("id", "0.1.1");
+
+            var carrotCfg = MakeCfg("id2", "0.1.0");
+            var innerCarrot = MakeDep("id", "^0.1.0");
+            carrotCfg.Config.Dependencies.Add(innerCarrot);
+            carrotCfg.RestoredDependencies.Add(MakeRestoredPair(innerCarrot, "0.1.2"));
+
+            var exactCfg = MakeCfg("id3", "0.1.0");
+            var innerStar = MakeDep("id", "*");
+            exactCfg.Config.Dependencies.Add(innerStar);
+            exactCfg.RestoredDependencies.Add(MakeRestoredPair(innerStar, "0.2.0"));
+
+            // Now we make the id versions: 0.1.2, 0.2.0
+            var id2Cfg = MakeCfg("id", "0.1.2");
+            var id3Cfg = MakeCfg("id", "0.2.0");
+
+            var uriHandler = Utils.GetUriHandler(new Dictionary<Dependency, SharedConfig>
+            {
+                { d1, idCfg }, { d2, carrotCfg }, { d3, exactCfg }, { innerCarrot, id2Cfg }, { innerStar, id3Cfg }
+            });
+
+            // Should not throw
+            var restorer = new RestoreHandler(Utils.GetConfigProvider(config).Object, uriHandler.Object);
+            var deps = await restorer.CollectDependencies();
+
+            var collapsed = RestoreHandler.CollapseDependencies(deps);
+            // The only resolved unique id SHOULD be: 0.1.1, because it is the only one with an exact version match
+            // All others INTERSECT with the version range, but should not OVERWRITE it.
+            Assert.Collection(collapsed,
+                Match(d1, idCfg),
+                Match(d2, carrotCfg),
+                Match(d3, exactCfg));
+        }
+
         [Fact]
         public async Task CollapseInvalid()
         {

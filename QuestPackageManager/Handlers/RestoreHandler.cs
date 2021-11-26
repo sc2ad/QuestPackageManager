@@ -171,7 +171,7 @@ namespace QuestPackageManager
                     // Now we need to check to see if the current config is of a greater version than the config we want to add
                     // If it is, set it
                     // We can assume SharedConfig has no null fields from CollectDependencies
-                    if (p.Value[i].conf.Config?.Info?.Version > confToAdd.Config?.Info?.Version)
+                    if (p.Value[i].conf.Config?.Info?.Version > confToAdd.Config?.Info?.Version && tmp.IsSatisfied(p.Value[i].conf.Config?.Info?.Version))
                         confToAdd = p.Value[i].conf;
                     // Copy additional data, only if it doesn't already exist.
                     foreach (var pair in p.Value[i].dep.Dependency!.AdditionalData)
