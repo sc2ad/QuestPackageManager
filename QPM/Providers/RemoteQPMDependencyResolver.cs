@@ -346,25 +346,22 @@ namespace QPM
                     bool found = false;
                     foreach (var s in styles.EnumerateArray())
                     {
+                        var st = SupportedPropertiesCommand.Convert<SupportedPropertiesCommand.StyleProperty>(s)!;
                         // If s is a valid style (it should be)
-                        if (s.TryGetProperty(SupportedPropertiesCommand.Style_Name, out var styleName) && styleName.GetString() == style)
+                        if (st.Name == style)
                         {
                             // Use this style
-                            if (s.TryGetProperty(SupportedPropertiesCommand.DebugSoLink, out var soLinkEStyle) && !useRelease)
-                            {
-                                var tmp = soLinkEStyle.GetString();
-                                if (tmp is null)
-                                    throw new DependencyException($"Style: {style} with debugSoLink: {tmp} cannot be null!");
-                                soLink = tmp;
-                            }
-                            soLink = string.IsNullOrEmpty(soLink) && !s.TryGetProperty(SupportedPropertiesCommand.ReleaseSoLink, out soLinkEStyle)
-                                ? throw new DependencyException($"Dependency: {sharedConfig.Config.Info.Id}, using style: {style} has no 'soLink' property! Cannot download so to link!")
-                                : soLinkEStyle.GetString()!;
+                            soLink = string.IsNullOrEmpty(st.DebugSoLink) && !useRelease
+                                ? throw new DependencyException($"Style: {style} with must have a non-null: {nameof(st.DebugSoLink)}!")
+                                : st.DebugSoLink!;
+                            soLink = string.IsNullOrEmpty(soLink) && string.IsNullOrEmpty(st.SoLink)
+                                ? throw new DependencyException($"Dependency: {sharedConfig.Config.Info.Id}, using style: {style} has no {nameof(st.SoLink)} property! Cannot download so to link!")
+                                : st.SoLink!;
                             found = true;
                             break;
                         }
                         else
-                            throw new DependencyException($"Style in resolved dependency: {sharedConfig.Config.Info.Id} does not have a {SupportedPropertiesCommand.Style_Name} property!");
+                            throw new DependencyException($"Style in resolved dependency: {sharedConfig.Config.Info.Id} does not have a valid {nameof(st.Name)} property!");
                     }
                     if (!found)
                         // Throw if we can't find the dependency
@@ -445,17 +442,33 @@ namespace QPM
                     var module = new Data.Module
                     {
                         PrefixLines = new List<string>
-                    {
-                        $"# Creating prebuilt for dependency: {sharedConfig.Config.Info.Id} - version: {sharedConfig.Config.Info.Version}",
-                        "include $(CLEAR_VARS)"
-                    },
+                        {
+                            $"# Creating prebuilt for dependency: {sharedConfig.Config.Info.Id} - version: {sharedConfig.Config.Info.Version}",
+                            "include $(CLEAR_VARS)"
+                        },
                         Src = new List<string>
-                    {
-                        fileLoc.Replace('\\', '/')
-                    },
-                        ExportIncludes = Path.Combine(myConfig.DependenciesDir, sharedConfig.Config.Info.Id).Replace('\\', '/'),
+                        {
+                            fileLoc.Replace('\\', '/')
+                        },
+                        ExportIncludes = new List<string>
+                        {
+                            Path.Combine(myConfig.DependenciesDir, sharedConfig.Config.Info.Id).Replace('\\', '/')
+                        },
                         BuildLine = buildLine
                     };
+                    if (sharedConfig.Config.Info.AdditionalData.TryGetValue(SupportedPropertiesCommand.CompileOptions, out var optE))
+                    {
+                        var res = SupportedPropertiesCommand.Convert<SupportedPropertiesCommand.CompileOptionsProperty>(optE);
+                        if (res is null)
+                            throw new DependencyException($"Dependency: {dependency.Id} with version: {sharedConfig.Config.Info.Version} does not have a valid: {SupportedPropertiesCommand.CompileOptions} property!");
+                        module.ExportIncludes.AddRange(res.IncludePaths);
+                        module.ExportCFlags.AddRange(res.CFlags);
+                        foreach (var l in res.SystemIncludes)
+                            module.AddSystemInclude(l, true);
+                        module.ExportCppFlags.AddRange(res.CppFlags);
+                        foreach (var l in res.CppFeatures)
+                            module.AddExportCppFeature(l);
+                    }
                     if (overrodeName)
                         module.Id = soName.ReplaceFirst("lib", "").ReplaceLast(".so", "").ReplaceLast(".a", "");
                     else

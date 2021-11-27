@@ -130,14 +130,20 @@ namespace QPM.Providers
                         else if (line.StartsWith("LOCAL_EXPORT_C_INCLUDES"))
                         {
                             if (type == Concat.Set)
-                                module.ExportIncludes = string.Empty;
-                            module.ExportIncludes += parsed;
+                                module.ExportIncludes.Clear();
+                            module.ExportIncludes.AddRange(ParseLine(parsed));
                         }
                         else if (line.StartsWith("LOCAL_EXPORT_CFLAGS"))
                         {
                             if (type == Concat.Set)
                                 module.ExportCFlags.Clear();
                             module.ExportCFlags.AddRange(ParseLine(parsed));
+                        }
+                        else if (line.StartsWith("LOCAL_EXPORT_CPPFLAGS"))
+                        {
+                            if (type == Concat.Set)
+                                module.ExportCppFlags.Clear();
+                            module.ExportCppFlags.AddRange(ParseLine(parsed));
                         }
                         else if (line.StartsWith("LOCAL_SHARED_LIBRARIES"))
                         {
@@ -237,10 +243,12 @@ namespace QPM.Providers
                 foreach (var p in m.PrefixLines)
                     sb.AppendLine(p);
                 sb.AppendLine("LOCAL_MODULE := " + m.Id);
-                if (!string.IsNullOrEmpty(m.ExportIncludes))
-                    sb.AppendLine("LOCAL_EXPORT_C_INCLUDES := " + m.ExportIncludes);
+                if (m.ExportIncludes.Any())
+                    sb.AppendLine("LOCAL_EXPORT_C_INCLUDES := " + string.Join(' ', m.ExportIncludes));
                 if (m.ExportCFlags.Any())
-                    sb.AppendLine("LOCAL_EXPORT_C_FLAGS := " + string.Join(' ', m.CppFeatures));
+                    sb.AppendLine("LOCAL_EXPORT_CFLAGS := " + string.Join(' ', m.ExportCFlags));
+                if (m.ExportCppFlags.Any())
+                    sb.AppendLine("LOCAL_EXPORT_CPPFLAGS := " + string.Join(' ', m.ExportCppFlags));
                 if (m.Src.Count == 1)
                     sb.AppendLine("LOCAL_SRC_FILES := " + m.Src.First());
                 else

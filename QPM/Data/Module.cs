@@ -11,12 +11,13 @@ namespace QPM.Data
         public List<string> PrefixLines { get; set; } = new List<string>();
         public string? Id { get; set; }
         public List<string> Src { get; set; } = new List<string>();
-        public string? ExportIncludes { get; set; }
+        public List<string> ExportIncludes { get; set; } = new();
         public List<string> StaticLibs { get; set; } = new List<string>();
         public List<string> SharedLibs { get; set; } = new List<string>();
         public List<string> LdLibs { get; set; } = new List<string>();
         public List<string> CFlags { get; set; } = new List<string>();
         public List<string> ExportCFlags { get; set; } = new List<string>();
+        public List<string> ExportCppFlags { get; set; } = new();
         public List<string> CppFlags { get; set; } = new List<string>();
         public List<string> CIncludes { get; set; } = new List<string>();
         public List<string> CppFeatures { get; set; } = new List<string>();
@@ -39,6 +40,21 @@ namespace QPM.Data
             var include = "-I'" + includePath + "'";
             if (!CFlags.Contains(include))
                 CFlags.Add(include);
+        }
+
+        public void AddSystemInclude(string includePath, bool export = false)
+        {
+            var include = "-isystem'" + includePath + "'";
+            var lst = export ? ExportCFlags : CFlags;
+            if (!lst.Contains(include))
+                lst.Add(include);
+        }
+
+        public void AddExportCppFeature(string feature)
+        {
+            var f = "-f" + feature;
+            if (!ExportCppFlags.Contains(f))
+                ExportCppFlags.Add(f);
         }
 
         public void EnsureIdIs(string id, SemVer.Version version) => Id = id + "_" + version.ToString().Replace('.', '_');

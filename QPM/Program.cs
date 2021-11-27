@@ -55,6 +55,7 @@ namespace QPM
         private const string qpmLocalConfig = "qpm.config.json";
 
         internal static bool isLocal = false;
+        private static readonly JsonSerializerOptions options = new() { WriteIndented = true };
 
         private static void LoadConfig()
         {
@@ -74,7 +75,7 @@ namespace QPM
                 {
                     Console.WriteLine($"Creating config at: {configPath}");
                     // Write default settings always
-                    File.WriteAllText(configPath, JsonSerializer.Serialize(Config, new JsonSerializerOptions { WriteIndented = true }));
+                    File.WriteAllText(configPath, JsonSerializer.Serialize(Config, options));
                 }
                 else
                 {
@@ -95,11 +96,11 @@ namespace QPM
         {
             if (!isLocal)
             {
-                await File.WriteAllTextAsync(configPath, JsonSerializer.Serialize(Config, new JsonSerializerOptions { WriteIndented = true })).ConfigureAwait(false);
+                await File.WriteAllTextAsync(configPath, JsonSerializer.Serialize(Config, options)).ConfigureAwait(false);
             }
             else
             {
-                await File.WriteAllTextAsync(qpmLocalConfig, JsonSerializer.Serialize(Config, new JsonSerializerOptions { WriteIndented = true })).ConfigureAwait(false);
+                await File.WriteAllTextAsync(qpmLocalConfig, JsonSerializer.Serialize(Config, options)).ConfigureAwait(false);
             }
         }
 
@@ -152,8 +153,8 @@ namespace QPM
             var mk = androidMkProvider.GetFile();
             if (mk != null)
             {
-                // Remove module
-                mk.Modules.RemoveAll(m => m.Id.Equals(dependency.Id, StringComparison.OrdinalIgnoreCase));
+                // Remove module, don't remove null ids, though they shouldn't exist.
+                mk.Modules.RemoveAll(m => m.Id?.Equals(dependency.Id, StringComparison.OrdinalIgnoreCase) ?? false);
                 // Main module, remove shared library
                 var module = mk.Modules.LastOrDefault();
                 if (module != null)
@@ -210,7 +211,7 @@ namespace QPM
                 {
                     module.AddDefine("VERSION", version.ToString());
                     if (overrodeName)
-                        module.Id = overridenName.GetString().ReplaceFirst("lib", "").ReplaceLast(".so", "").ReplaceLast(".a", "");
+                        module.Id = overridenName.GetString()!.ReplaceFirst("lib", "").ReplaceLast(".so", "").ReplaceLast(".a", "");
                     else
                         module.EnsureIdIs(conf.Info.Id, version);
                     androidMkProvider.SerializeFile(mk);
@@ -222,8 +223,8 @@ namespace QPM
         {
             // Perform Android.mk, c_cpp_properties.json, bmbfmod.json edits to ID, version, name, other info (?)
             var cfg = configProvider.GetConfig();
-            string shared = null;
-            string depDir = null;
+            string depDir;
+            string shared;
             if (cfg != null)
             {
                 shared = cfg.SharedDir;
@@ -234,6 +235,10 @@ namespace QPM
                     Directory.CreateDirectory(actualShared);
                 if (!Directory.Exists(actualDeps))
                     Directory.CreateDirectory(actualDeps);
+            }
+            else
+            {
+                throw new InvalidOperationException("Config that has just been created cannot possibly be null!");
             }
             var props = propertiesProvider.GetProperties();
             if (props != null)
@@ -265,9 +270,9 @@ namespace QPM
                     // Also add includePath for myConfig
                     if (cfg != null)
                     {
-                        if (cfg.Info.AdditionalData.TryGetValue(SupportedPropertiesCommand.OverrideSoName, out var overridenName))
+                        if (cfg.Info!.AdditionalData.TryGetValue(SupportedPropertiesCommand.OverrideSoName, out var overridenName))
                         {
-                            module.Id = overridenName.GetString().ReplaceFirst("lib", "").ReplaceLast(".so", "").ReplaceLast(".a", "");
+                            module.Id = overridenName.GetString()!.ReplaceFirst("lib", "").ReplaceLast(".so", "").ReplaceLast(".a", "");
                         }
                         else
                             module.EnsureIdIs(info.Id, info.Version);
@@ -309,7 +314,7 @@ namespace QPM
                 {
                     module.AddDefine("ID", id);
                     if (conf.Info.AdditionalData.TryGetValue(SupportedPropertiesCommand.OverrideSoName, out var overridenName))
-                        module.Id = overridenName.GetString().Replace("lib", "").Replace(".so", "").ReplaceLast(".a", "");
+                        module.Id = overridenName.GetString()!.Replace("lib", "").Replace(".so", "").ReplaceLast(".a", "");
                     else
                         module.EnsureIdIs(id, conf.Info.Version);
                     androidMkProvider.SerializeFile(mk);
