@@ -37,7 +37,9 @@ You must first have a valid `qpm.json` file within your current working director
 qpm dependency add "ID" -v "VERSION RANGE"
 ```
 
-Which creates a dependency with id: `ID` and version range: `VERSION RANGE`. If `-v` is not specified, version range defaults to `*` (latest available version)
+Which creates a dependency with id: `ID` and version range: `VERSION RANGE`. If `-v` is not specified, version range defaults to `*` (latest available version).
+
+**NOTE: YOU SHOULD ALMOST NEVER USE A `*` VERSION RANGE! INSTEAD PREFER PROPERLY CONSTRAINED VERSION RANGES!**
 
 ### Collect Dependencies
 
