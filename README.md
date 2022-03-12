@@ -2,6 +2,8 @@
 
 A package manager for making Quest il2cpp mods and libraries. Commonly acronymized as `QPM` or `qpm`
 
+**NOTE THAT THE CURRENT IMPLEMENTATION OF QPM IS NO LONGER RECOMMENDED FOR WIDESPREAD USE! CONSIDER USING [qpm-rust](https://github.com/RedBrumbler/QuestPackageManager-Rust) INSTEAD!**
+
 ## Vocabulary
 
 - `package`: An application with a single configuration. Can contain dependencies and has some metadata. Must have an id and a version (which must be SemVer).
@@ -35,7 +37,9 @@ You must first have a valid `qpm.json` file within your current working director
 qpm dependency add "ID" -v "VERSION RANGE"
 ```
 
-Which creates a dependency with id: `ID` and version range: `VERSION RANGE`. If `-v` is not specified, version range defaults to `*` (latest available version)
+Which creates a dependency with id: `ID` and version range: `VERSION RANGE`. If `-v` is not specified, version range defaults to `*` (latest available version).
+
+**NOTE: YOU SHOULD ALMOST NEVER USE A `*` VERSION RANGE! INSTEAD PREFER PROPERLY CONSTRAINED VERSION RANGES!**
 
 ### Collect Dependencies
 
