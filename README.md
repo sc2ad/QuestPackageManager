@@ -99,14 +99,16 @@ Then, the url must be set to either a github repository (ex: `https://github.com
 
 The download specified by this link **MUST** have a `qpm.json` file that matches the version specified in your `qpm.shared.json` that you plan on publishing.
 
-After you have ensured that all of the above is true, you can call:
+**YOU MUST TELL `Sc2ad#8836` THAT YOU WISH TO HAVE A PUBLISH KEY AND GIVE HIM THE INFORMATION HE DESIRES!** When he acknowledges, you are safe to:
 
 ```bash
-qpm publish
+qpm publish "your publish key here"
 ```
 
+Note that you should NOT expose this publish key to ANYONE! It should be a secret in your CI runs and it will not be exposed by `qpm-rust` or equivalent tools.
+
 However, due to the nature of QPM, it is possible to publish invalid packages to QPM, which will cause people trouble.
-For this reason, please message `Sc2ad#8836` before publishing a package to QPM.
+For this reason, please message `Sc2ad#8836` (you have to do this anyways) before publishing a package to QPM.
 
 ### Extra Notes
 
