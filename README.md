@@ -2,7 +2,7 @@
 
 A package manager for making Quest il2cpp mods and libraries. Commonly acronymized as `QPM` or `qpm`
 
-**NOTE THAT THE CURRENT IMPLEMENTATION OF QPM IS NO LONGER RECOMMENDED FOR WIDESPREAD USE! CONSIDER USING [qpm-rust](https://github.com/RedBrumbler/QuestPackageManager-Rust) INSTEAD!**
+**NOTE THAT THE CURRENT IMPLEMENTATION OF QPM IS NO LONGER RECOMMENDED FOR WIDESPREAD USE! CONSIDER USING [CLI qpm](https://github.com/QuestPackageManager/QPM.CLI) INSTEAD!**
 
 This repository will be archived soon and for all intents and purposes should be considered deprecated!
 
